@@ -38,21 +38,33 @@ void Refletion::datainitail(HybridMesh &mesh){
         discretsolid.discreteFacets[i].points[2]=mesh.pTris[i].vertices[2];
     }
     buildRelationshipByPoint(&discretsolid);
-    buildFacetRelationshipByEdge(&discretsolid);
+    buildFacetRelationshipByEdge(&discretsolid);     //拓扑关系建立有问题
 
-
-//    for(int i=0;i<discretsolid.NumPoints;++i){
-//         if(discretsolid.discretPoints[i].linkedPoints.size()!=discretsolid.discretPoints[i].linkedFacets.size()){
-//            for(auto a:discretsolid.discretPoints[i].linkedPoints)
-//                cout<<a<<" ";
-//            cout<<endl;
-//             discretsolid.discretPoints[i].linkedPoints.erase(0);  //problem?
-//         }
-//    }
+    ofstream test1;
+    test1.open("test1.txt");
+    for(int i=0;i<discretsolid.NumPoints;++i){
+         if(discretsolid.discretPoints[i].linkedPoints.size()!=discretsolid.discretPoints[i].linkedFacets.size()){
+            for(auto a:discretsolid.discretPoints[i].linkedPoints)
+                test1<<a<<" ";
+            test1<<endl;
+      //       discretsolid.discretPoints[i].linkedPoints.erase(0);  //problem?
+         }
+    }
+#ifdef OUTPUT
+        ofstream pointfile;
+        pointfile.open("pointfile.txt");
+         for(int i=0;i<discretsolid.NumPoints;++i){
+             pointfile<<"Point : "<<i<<endl;
+              for(auto a:discretsolid.discretPoints[i].linkedPoints)      //运行有不确定结果   ok
+               pointfile<<a<<" ";
+              pointfile<<endl;
+         }
+        pointfile.close();
+#endif
     set<int> cout_test;
 
    // for(int i=0;i<discretsolid.NumPoints;++i){
-         for(auto a:discretsolid.discretPoints[30599].linkedPoints)
+         for(auto a:discretsolid.discretPoints[30599].linkedPoints)      //运行有不确定结果    ok
           cout_test.insert(a);
 //    }
 
@@ -183,12 +195,12 @@ void Refletion::datainitail(HybridMesh &mesh){
             for(int j=0;j<mesh.NumNodes;++j){
 //                if(mesh.nodes[j].flag==0)
 //                    continue;
-                if(curves[i].start_coord().getDistance(mesh.nodes[j].coord)<vol)
+                if(curves[i].start_coord().getDistance(mesh.nodes[j].coord)<vol/10)
                 {
                     headfind=1;
                     temp.push_back(j);
                 }
-                if(curves[i].end_coord().getDistance(mesh.nodes[j].coord)<vol){
+                if(curves[i].end_coord().getDistance(mesh.nodes[j].coord)<vol/10){
                     temp.push_back(j);
                     endfind=1;
                 }
@@ -207,7 +219,7 @@ void Refletion::datainitail(HybridMesh &mesh){
                 curves[i].flag=1;
             }
             else
-  //              cout<<"curve "<<i<<" find error"<<endl;
+                cout<<"curve "<<i<<" find error"<<endl;
                 headfind=0;
                 endfind=0;
             curve_head.push_back(temp);
@@ -261,7 +273,6 @@ void Refletion::datainitail(HybridMesh &mesh){
 
         }
         }
-
         pre_node=-1;
         curve_node.push_back(temp);
         }
@@ -407,7 +418,7 @@ surfacefile_2.close();
 //                 cout<<i<<endl;
 //            for(int j=0;j<mesh.NumNodes;++j){
 //                    if(j<loc&&_vertex[j].flag==-1){  //如何区分内部网格点和表面网格点?
-//                   //     cout<<j<<endl;
+//                        cout<<j<<endl;
 //                    this->sufaces[i].project(mesh.nodes[j].coord,&u,&v);
 //                    this->sufaces[i].param_to_coord(u,v,&coord);
 //                    if(coord.getDistance(mesh.nodes[j].coord)<vol)

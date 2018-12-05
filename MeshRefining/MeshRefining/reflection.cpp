@@ -3,9 +3,10 @@
 #include "fstream"
 #include "strstream"
 #include <algorithm>
+#include <queue>
 #define METHOD_3
 //#define DEBUG
-#define OUTPUT
+//#define OUTPUT
  DiscretSolid discretsolid;
 void Refletion::datainitail(HybridMesh &mesh){
     int nf=gbsolid.nloops_G;
@@ -305,6 +306,7 @@ void Refletion::datainitail(HybridMesh &mesh){
                 for(int k=0;k<curve_node[gbsolid.loop_G[i].cp_t[j]->index].size();++k){
                     int n=curve_node[gbsolid.loop_G[i].cp_t[j]->index][k];
                     _temp.insert(n);
+                    discretsolid.discretPoints[n].curvePoint=true;
                 }
             }
             sufaces[i].flag=1;
@@ -319,15 +321,22 @@ void Refletion::datainitail(HybridMesh &mesh){
         ofstream surfacefile_2;
         surfacefile_2.open("test_surface_2.txt");
 #endif
+  set<int> line_1;
         for(int i=0;i<gbsolid.nloops_G;++i){
             cout<<"test"<<i<<endl;
             _temp.clear();
-            for(auto j=loop[i].begin();j!=loop[i].end();++j) {
-                current_node=discretsolid.discretPoints[*j];
-                discretsolid.discretPoints[*j].curvePoint=true;
-                 for(auto k=current_node.linkedPoints.begin();k!=current_node.linkedPoints.end();++k)
+            line_1.clear();
+            for(auto j=loop[i].begin();j!=loop[i].end();++j){
+                            current_node=discretsolid.discretPoints[*j];
+                            for(auto k=current_node.linkedPoints.begin();k!=current_node.linkedPoints.end();++k){
+                                if(!discretsolid.discretPoints[*k].curvePoint){
+                                  line_1.insert(*k);
+                }
+              }
+            }         //尝试加速
+
+                 for(auto k=line_1.begin();k!=line_1.end();++k)
                   {
-                 if(loop[i].find(*k)==loop[i].end()){
                     sufaces[i].project(mesh.nodes[*k].coord,&u,&v);
                     sufaces[i].param_to_coord(u,v,&coord);            //投影部分运行耗时
                     distance=mesh.nodes[*k].coord.getDistance(coord);
@@ -342,8 +351,31 @@ void Refletion::datainitail(HybridMesh &mesh){
                         _temp.insert(*k);
                        }
                   }
-                 }
-            }
+
+
+
+//            for(auto j=loop[i].begin();j!=loop[i].end();++j) {
+//                current_node=discretsolid.discretPoints[*j];
+//                discretsolid.discretPoints[*j].curvePoint=true;
+//                 for(auto k=current_node.linkedPoints.begin();k!=current_node.linkedPoints.end();++k)
+//                  {
+//                 if(loop[i].find(*k)==loop[i].end()){
+//                    sufaces[i].project(mesh.nodes[*k].coord,&u,&v);
+//                    sufaces[i].param_to_coord(u,v,&coord);            //投影部分运行耗时
+//                    distance=mesh.nodes[*k].coord.getDistance(coord);
+//                    if(distance<vol)
+//                       {
+//#ifdef OUTPUT
+//                        surfacefile_2<<*k<<" ";
+//#endif
+//                        discretsolid.discretPoints[*k].curvePoint=true;
+//                        _vertex[*k].surface=&sufaces[i];
+//                        _vertex[*k].flag=i;
+//                        _temp.insert(*k);
+//                       }
+//                  }
+//                 }
+//            }
             iner_loop.push_back(_temp);
         }
 #ifdef DEBUG
@@ -361,34 +393,77 @@ surfacefile_2.close();
 
         vector<vector<int>> face_node;
         vector<int> face_node_temp;
+        set<int> inerline;
+        queue<int> q;
+  //      int bignum=0;
         for(int i=0;i<gbsolid.nloops_G;++i){
-#ifdef OUTPUT
-        surfacefile<<endl<<"surface :"<<i<<endl;
-#endif
+             inerline.clear();
+//            for(auto j=iner_loop[i].begin();j!=iner_loop[i].end();++j){
+//                            current_node=discretsolid.discretPoints[*j];
+//                            for(auto k=current_node.linkedPoints.begin();k!=current_node.linkedPoints.end();++k){
+//                                if(!discretsolid.discretPoints[*k].curvePoint){
+//                                    current_node=discretsolid.discretPoints[*k];
+//                                                            break;
+//                }
+//              }
+//            }
             for(auto j=iner_loop[i].begin();j!=iner_loop[i].end();++j){
-                current_node=discretsolid.discretPoints[*j];
-                for(auto k=current_node.linkedPoints.begin();k!=current_node.linkedPoints.end();++k){
-                    if(!discretsolid.discretPoints[*k].curvePoint){
-                        current_node=discretsolid.discretPoints[*k];
-                        break;
-                    }
+                            current_node=discretsolid.discretPoints[*j];
+                            for(auto k=current_node.linkedPoints.begin();k!=current_node.linkedPoints.end();++k){
+                                if(!discretsolid.discretPoints[*k].curvePoint){
+                                  inerline.insert(*k);
                 }
-           while(!discretsolid.discretPoints[current_node.index].curvePoint){
-               face_node_temp.push_back(current_node.index);
-#ifdef OUTPUT
-        surfacefile<<" "<<current_node.index;
-#endif
-               _vertex[current_node.index].surface=&sufaces[i];
-               _vertex[current_node.index].flag=i;
-               discretsolid.discretPoints[current_node.index].curvePoint=true;
-               for(auto k=current_node.linkedPoints.begin();k!=current_node.linkedPoints.end();++k){
-                   if(!discretsolid.discretPoints[*k].curvePoint){
-                       current_node=discretsolid.discretPoints[*k];
-                       break;
+              }
+            }
+            for(auto l=inerline.begin();l!=inerline.end();++l){
+              current_node=discretsolid.discretPoints[*l];
+              current_node.curvePoint=true;
+              q.push(current_node.index);
+         //        cout<<i<<endl;
+               while(!q.empty()){
+                   current_node=discretsolid.discretPoints[q.front()];
+                   face_node_temp.push_back(current_node.index);
+                   _vertex[current_node.index].surface=&sufaces[i];
+                   _vertex[current_node.index].flag=i;
+                   q.pop();
+      //             cout<<bignum++<<endl;
+                   for(auto k=current_node.linkedPoints.begin();k!=current_node.linkedPoints.end();++k){
+                       if(!discretsolid.discretPoints[*k].curvePoint)
+                       {
+                           discretsolid.discretPoints[*k].curvePoint=true;
+                           q.push(discretsolid.discretPoints[*k].index);
+                       }
                    }
                }
-           }
-            }
+}
+
+//#ifdef OUTPUT
+//        surfacefile<<endl<<"surface :"<<i<<endl;
+//#endif
+//            for(auto j=iner_loop[i].begin();j!=iner_loop[i].end();++j){
+//                current_node=discretsolid.discretPoints[*j];
+//                for(auto k=current_node.linkedPoints.begin();k!=current_node.linkedPoints.end();++k){
+//                    if(!discretsolid.discretPoints[*k].curvePoint){
+//                        current_node=discretsolid.discretPoints[*k];
+//                        break;
+//                    }
+//                }
+//           while(!discretsolid.discretPoints[current_node.index].curvePoint){
+//               face_node_temp.push_back(current_node.index);
+//#ifdef OUTPUT
+//        surfacefile<<" "<<current_node.index;
+//#endif
+//               _vertex[current_node.index].surface=&sufaces[i];
+//               _vertex[current_node.index].flag=i;
+//               discretsolid.discretPoints[current_node.index].curvePoint=true;
+//               for(auto k=current_node.linkedPoints.begin();k!=current_node.linkedPoints.end();++k){
+//                   if(!discretsolid.discretPoints[*k].curvePoint){
+//                       current_node=discretsolid.discretPoints[*k];
+//                       break;
+//                   }
+//               }    //这个深度遍历算法有问题，尝试广度遍历？
+//           }
+//            }
            face_node.push_back(face_node_temp);
            face_node_temp.clear();
         }

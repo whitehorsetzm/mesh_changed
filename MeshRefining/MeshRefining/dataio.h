@@ -48,4 +48,6 @@ int findiCellFast(HYBRID_MESH &file);
 
 int readCGNS(char*filename, HYBRID_MESH&mesh, vector<string> &bcstring);
 
+int readCGNS_temp(char*filename,HYBRID_MESH&mesh,vector<string>&bcstring);
+
 #endif // DATAIO_H

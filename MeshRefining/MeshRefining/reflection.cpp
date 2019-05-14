@@ -16,7 +16,7 @@ void Refletion::datainitail(HybridMesh &mesh){
     double u,v;
     Vector coord;
     double distance,cls_u;
-    double vol;
+    double vol;//关于Reference to 'xxxxx' is ambiguous
     int k;
     ref_table = new temp[mesh.NumNodes];
     double min = 1e10;
@@ -41,16 +41,17 @@ void Refletion::datainitail(HybridMesh &mesh){
     buildRelationshipByPoint(&discretsolid);
     buildFacetRelationshipByEdge(&discretsolid);     //拓扑关系建立有问题
 
-    ofstream test1;
-    test1.open("test1.txt");
-    for(int i=0;i<discretsolid.NumPoints;++i){
-         if(discretsolid.discretPoints[i].linkedPoints.size()!=discretsolid.discretPoints[i].linkedFacets.size()){
-            for(auto a:discretsolid.discretPoints[i].linkedPoints)
-                test1<<a<<" ";
-            test1<<endl;
-      //       discretsolid.discretPoints[i].linkedPoints.erase(0);  //problem?
-         }
-    }
+////    ofstream test1;
+////    test1.open("test1.txt");
+//    for(int i=0;i<discretsolid.NumPoints;++i){
+//         if(discretsolid.discretPoints[i].linkedPoints.size()!=discretsolid.discretPoints[i].linkedFacets.size()){
+//            for(auto a:discretsolid.discretPoints[i].linkedPoints)
+////                test1<<a<<" ";
+////            test1<<endl;
+//      //       discretsolid.discretPoints[i].linkedPoints.erase(0);  //problem?
+//         }
+//    }
+//    cout<<"test"<<endl;
 #ifdef OUTPUT
         ofstream pointfile;
         pointfile.open("pointfile.txt");
@@ -62,21 +63,22 @@ void Refletion::datainitail(HybridMesh &mesh){
          }
         pointfile.close();
 #endif
-    set<int> cout_test;
+//    set<int> cout_test;
 
-   // for(int i=0;i<discretsolid.NumPoints;++i){
-         for(auto a:discretsolid.discretPoints[30599].linkedPoints)      //运行有不确定结果    ok
-          cout_test.insert(a);
-//    }
+//   // for(int i=0;i<discretsolid.NumPoints;++i){
+//    cout<<"test"<<endl;
+//         for(auto a:discretsolid.discretPoints[30599].linkedPoints)      //运行有不确定结果    ok
+//          cout_test.insert(a);
 
-#ifdef OUTPUT
-        ofstream pointfile_old;
-        pointfile_old.open("pointfile_old.txt");
-        for(auto a:cout_test){
-            pointfile_old<<a<<endl;
-        }
-        pointfile_old.close();
-#endif
+
+//#ifdef OUTPUT
+//        ofstream pointfile_old;
+//        pointfile_old.open("pointfile_old.txt");
+//        for(auto a:cout_test){
+//            pointfile_old<<a<<endl;
+//        }
+//        pointfile_old.close();
+//#endif
 
     Vector coord_1;
     Vector coord_2;
@@ -323,7 +325,7 @@ void Refletion::datainitail(HybridMesh &mesh){
 #endif
   set<int> line_1;
         for(int i=0;i<gbsolid.nloops_G;++i){
-            cout<<"test"<<i<<endl;
+//            cout<<"test"<<i<<endl;
             _temp.clear();
             line_1.clear();
             for(auto j=loop[i].begin();j!=loop[i].end();++j){
@@ -793,10 +795,10 @@ void Refletion::initial(int NumNodes,double *nodecoord,int Numtris,int *vertices
         }
         else if(patch_id1==-1&&patch_id2==-1&&patch_id3==-1)
      {
-#ifdef DEBUG
-            cout<<"tris "<<i<<endl;
-            cout<<"  "<<mesh.pTris[i].vertices[0]<<"   "<<mesh.pTris[i].vertices[1]<<"   "<<mesh.pTris[i].vertices[2]<<endl;
-#endif
+//#ifdef DEBUG
+//            cout<<"tris "<<i<<endl;
+//            cout<<"  "<<mesh.pTris[i].vertices[0]<<"   "<<mesh.pTris[i].vertices[1]<<"   "<<mesh.pTris[i].vertices[2]<<endl;
+//#endif
           Vector vec=(mesh.nodes[mesh.pTris[i].vertices[0]].coord+mesh.nodes[mesh.pTris[i].vertices[1]].coord+mesh.nodes[mesh.pTris[i].vertices[2]].coord)/3;
           face_patch[i]=findsurface(ref_table[mesh.pTris[i].vertices[0]].curve_id,ref_table[mesh.pTris[i].vertices[1]].curve_id,ref_table[mesh.pTris[i].vertices[2]].curve_id,vec);
      }

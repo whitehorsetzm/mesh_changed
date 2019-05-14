@@ -433,7 +433,7 @@ int partition(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, int s
         for(int i=0;i<nparts;i++)
         {
             updateTriIndex(tetrasPart[i],tri_globalID);
-            findiCellFast(tetrasPart[i]);///////find icell
+     //       findiCellFast(tetrasPart[i]);///////find icell
         }
 
 
@@ -601,7 +601,7 @@ int meshRefining(HYBRID_MESH &tetrasfile,HYBRID_MESH &newTetrasfile,int partMark
     //find the iCell of the triangles
     setupCellNeig(newTetrasfile.NumNodes,newTetrasfile.NumTetras,newTetrasfile.pTetras);//local
 
-    findiCellFast(newTetrasfile);
+//    findiCellFast(newTetrasfile);
 
 
 
@@ -758,11 +758,9 @@ int meshRefining(HYBRID_MESH &tetrasfile,HYBRID_MESH &newTetrasfile,int partMark
                 if(patch_id_2!=-1&&patch_id_1!=-1){
 //                nodetemp.coord=ref.subject_patch_id(patch_id_2,patch_id_1,nodetemp.coord);//#add
                   ref.reflection(patch_id_1,patch_id_2,x,y,z);
-
                     nodetemp.coord.x=x;
                     nodetemp.coord.y=y;
                     nodetemp.coord.z=z;
-
                 }
                 face_id_1=-1;
                 face_id_2=-1;
@@ -772,6 +770,7 @@ int meshRefining(HYBRID_MESH &tetrasfile,HYBRID_MESH &newTetrasfile,int partMark
                 edgeHash.insert(edgePair);
             }
         }
+   //     cout<<i<<endl;
      }
 
      newTetrasfile.NumNodes=NumNewNodes;
@@ -815,7 +814,7 @@ int meshRefining(HYBRID_MESH &tetrasfile,HYBRID_MESH &newTetrasfile,int partMark
     //find the iCell of the triangles
     setupCellNeig(newTetrasfile.NumNodes,newTetrasfile.NumTetras,newTetrasfile.pTetras);//local
 
-    findiCellFast(newTetrasfile);
+ //  findiCellFast(newTetrasfile);
     writeVTKFile("TEST.vtk", newTetrasfile);
 
     return 1;
@@ -1281,18 +1280,25 @@ int constructFacets(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,int64_t
                 constructOneTriangle(vertices,triangle);
                 triangle.iCell=i;
                 int globalID=mesh.pTetras[i].index;///////////////////
+               // cout<<globalID<<endl;
                 if(globalID<0||globalID>=globalMesh.NumTetras)
                 {
                     cout<<"Error in finding the gloabl index!"<<endl;
                 }
                 globalID=globalMesh.pTetras[globalID].neighbors[forth];
+       //        cout<<mesh.pTetras[i].neighbors[forth]<<endl;
                 if(globalID==-1)
                 {
                     triangle.iOppoProc=-1;
+                //      cout<<triangle.iOppoProc<<endl;
+
                 }
                 else
                 {
                     triangle.iOppoProc=globalMesh.pTetras[globalID].partMarker;
+                    //cout<<"forth:  "<<temp<<endl;
+                   // cout<<triangle.iOppoProc<<endl;
+
                 }
                 interFacets.push_back(triangle);
             }
@@ -1349,10 +1355,12 @@ int constructFacets(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,int64_t
         {
             //case : surface facet or interface created in the last partition
 
+
         }
         else
         {
             //case : new interface
+                            //cout<<"test"<<endl;
             int globalVertices[3];
             globalVertices[0]=mesh.nodes[vertices[0]].index;
             globalVertices[1]=mesh.nodes[vertices[1]].index;

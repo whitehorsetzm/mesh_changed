@@ -12,7 +12,7 @@ MAKEFILE      = Makefile
 
 CC            = gcc
 CXX           = g++
-DEFINES       = -DQT_DEPRECATED_WARNINGS -DQT_QML_DEBUG -DQT_CORE_LIB
+DEFINES       = -DQT_DEPRECATED_WARNINGS -D_CONSTRAINED_RECOVERY -DNDEBUG -D_CONSOLE -D_DOUBLE -D_WRITE_CPP_DOUBLE -D_TIMING_PERFORMANCE -D_REPOSITION_STEINER_PNT -D_ROBUST_BW_KERNEL -D_NEW_HEAP_DATASTRUCTURE -DQT_QML_DEBUG -DQT_CORE_LIB
 CFLAGS        = -pipe -g -Wall -W -D_REENTRANT -fPIC $(DEFINES)
 CXXFLAGS      = -pipe -g -std=gnu++11 -Wall -W -D_REENTRANT -fPIC $(DEFINES)
 INCPATH       = -I../MeshRefining -I. -isystem /usr/local/include -I/usr/lib/mpich/include -isystem /usr/include/mpich-3.2-x86_64 -I../MeshRefining/include -I/opt/Qt5.8.0/5.8/gcc_64/include -I/opt/Qt5.8.0/5.8/gcc_64/include/QtCore -I. -I/opt/Qt5.8.0/5.8/gcc_64/mkspecs/linux-g++
@@ -50,24 +50,26 @@ OBJECTS_DIR   = ./
 
 SOURCES       = ../MeshRefining/main.cpp \
 		../MeshRefining/dataclass.cpp \
-		../MeshRefining/vector.cpp \
 		../MeshRefining/dataio.cpp \
 		../MeshRefining/refinefunctions.cpp \
 		../MeshRefining/boundary.cpp \
 		../MeshRefining/miscellaneous.cpp \
 		../MeshRefining/openfoamfile.cpp \
 		../MeshRefining/boundarycondition.cpp \
-		../MeshRefining/reflection.cpp 
+		../MeshRefining/reflection.cpp \
+		../MeshRefining/smooth.cpp \
+		../MeshRefining/vector.cpp 
 OBJECTS       = main.o \
 		dataclass.o \
-		vector.o \
 		dataio.o \
 		refinefunctions.o \
 		boundary.o \
 		miscellaneous.o \
 		openfoamfile.o \
 		boundarycondition.o \
-		reflection.o
+		reflection.o \
+		smooth.o \
+		vector.o
 DIST          = /opt/Qt5.8.0/5.8/gcc_64/mkspecs/features/spec_pre.prf \
 		/opt/Qt5.8.0/5.8/gcc_64/mkspecs/common/unix.conf \
 		/opt/Qt5.8.0/5.8/gcc_64/mkspecs/common/linux.conf \
@@ -246,16 +248,18 @@ DIST          = /opt/Qt5.8.0/5.8/gcc_64/mkspecs/features/spec_pre.prf \
 		../MeshRefining/openfoamfile.h \
 		../MeshRefining/boundarycondition.h \
 		../MeshRefining/lookup_table.h \
-		../MeshRefining/reflection.h ../MeshRefining/main.cpp \
+		../MeshRefining/reflection.h \
+		../MeshRefining/smooth.h ../MeshRefining/main.cpp \
 		../MeshRefining/dataclass.cpp \
-		../MeshRefining/vector.cpp \
 		../MeshRefining/dataio.cpp \
 		../MeshRefining/refinefunctions.cpp \
 		../MeshRefining/boundary.cpp \
 		../MeshRefining/miscellaneous.cpp \
 		../MeshRefining/openfoamfile.cpp \
 		../MeshRefining/boundarycondition.cpp \
-		../MeshRefining/reflection.cpp
+		../MeshRefining/reflection.cpp \
+		../MeshRefining/smooth.cpp \
+		../MeshRefining/vector.cpp
 QMAKE_TARGET  = MeshRefining
 DESTDIR       = 
 TARGET        = MeshRefining
@@ -623,8 +627,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /opt/Qt5.8.0/5.8/gcc_64/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../MeshRefining/globaldefine.h ../MeshRefining/dataclass.h ../MeshRefining/vector.h ../MeshRefining/dataio.h ../MeshRefining/refinefunctions.h ../MeshRefining/boundary.h ../MeshRefining/miscellaneous.h ../MeshRefining/openfoamfile.h ../MeshRefining/boundarycondition.h ../MeshRefining/lookup_table.h ../MeshRefining/reflection.h $(DISTDIR)/
-	$(COPY_FILE) --parents ../MeshRefining/main.cpp ../MeshRefining/dataclass.cpp ../MeshRefining/vector.cpp ../MeshRefining/dataio.cpp ../MeshRefining/refinefunctions.cpp ../MeshRefining/boundary.cpp ../MeshRefining/miscellaneous.cpp ../MeshRefining/openfoamfile.cpp ../MeshRefining/boundarycondition.cpp ../MeshRefining/reflection.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ../MeshRefining/globaldefine.h ../MeshRefining/dataclass.h ../MeshRefining/vector.h ../MeshRefining/dataio.h ../MeshRefining/refinefunctions.h ../MeshRefining/boundary.h ../MeshRefining/miscellaneous.h ../MeshRefining/openfoamfile.h ../MeshRefining/boundarycondition.h ../MeshRefining/lookup_table.h ../MeshRefining/reflection.h ../MeshRefining/smooth.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../MeshRefining/main.cpp ../MeshRefining/dataclass.cpp ../MeshRefining/dataio.cpp ../MeshRefining/refinefunctions.cpp ../MeshRefining/boundary.cpp ../MeshRefining/miscellaneous.cpp ../MeshRefining/openfoamfile.cpp ../MeshRefining/boundarycondition.cpp ../MeshRefining/reflection.cpp ../MeshRefining/smooth.cpp ../MeshRefining/vector.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -670,7 +674,8 @@ compiler_clean: compiler_moc_predefs_clean
 
 ####### Compile
 
-main.o: ../MeshRefining/main.cpp ../MeshRefining/dataio.h \
+main.o: ../MeshRefining/main.cpp ../MeshRefining/smooth.h \
+		../MeshRefining/dataio.h \
 		../MeshRefining/dataclass.h \
 		../MeshRefining/vector.h \
 		../MeshRefining/globaldefine.h \
@@ -696,9 +701,6 @@ dataclass.o: ../MeshRefining/dataclass.cpp ../MeshRefining/globaldefine.h \
 		../MeshRefining/dataclass.h \
 		../MeshRefining/vector.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o dataclass.o ../MeshRefining/dataclass.cpp
-
-vector.o: ../MeshRefining/vector.cpp ../MeshRefining/include/vector.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o vector.o ../MeshRefining/vector.cpp
 
 dataio.o: ../MeshRefining/dataio.cpp ../MeshRefining/dataio.h \
 		../MeshRefining/dataclass.h \
@@ -755,20 +757,14 @@ openfoamfile.o: ../MeshRefining/openfoamfile.cpp ../MeshRefining/openfoamfile.h 
 boundarycondition.o: ../MeshRefining/boundarycondition.cpp ../MeshRefining/boundarycondition.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o boundarycondition.o ../MeshRefining/boundarycondition.cpp
 
-reflection.o: ../MeshRefining/reflection.cpp ../MeshRefining/reflection.h \
-		../MeshRefining/include/ferguson_curve.h \
-		../MeshRefining/include/curve.h \
-		../MeshRefining/include/vector.h \
-		../MeshRefining/include/ferguson_surface.h \
-		../MeshRefining/include/surface.h \
-		../MeshRefining/include/GeomT.h \
-		../MeshRefining/include/adaptive_io.h \
-		../MeshRefining/include/global.h \
-		../MeshRefining/include/config.h \
-		../MeshRefining/include/data_io.h \
-		../MeshRefining/dataclass.h \
-		../MeshRefining/vector.h
+reflection.o: ../MeshRefining/reflection.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o reflection.o ../MeshRefining/reflection.cpp
+
+smooth.o: ../MeshRefining/smooth.cpp ../MeshRefining/smooth.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o smooth.o ../MeshRefining/smooth.cpp
+
+vector.o: ../MeshRefining/vector.cpp ../MeshRefining/include/vector.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o vector.o ../MeshRefining/vector.cpp
 
 ####### Install
 

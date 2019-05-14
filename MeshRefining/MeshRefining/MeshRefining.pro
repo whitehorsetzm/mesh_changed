@@ -11,14 +11,15 @@ TEMPLATE = app
 
 SOURCES += main.cpp \
     dataclass.cpp \
-    vector.cpp \
     dataio.cpp \
     refinefunctions.cpp \
     boundary.cpp \
     miscellaneous.cpp \
     openfoamfile.cpp \
     boundarycondition.cpp \
-    reflection.cpp
+    reflection.cpp \
+    smooth.cpp \
+    vector.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -42,7 +43,8 @@ HEADERS += \
     openfoamfile.h \
     boundarycondition.h \
     lookup_table.h \
-    reflection.h
+    reflection.h \
+    smooth.h
 
 INCLUDEPATH += /usr/local/include/
 LIBS += -L/usr/local/lib -L/usr/lib64/mpich-3.2/lib/ -lmpi
@@ -54,3 +56,9 @@ INCLUDEPATH +=$$PWD/include
 # LIBS += -L$$PWD/lib/ -lreflection
 # LIBS += -L$$PWD/lib/ -lrefletion
 LIBS += -L$$PWD/lib/ -lgeometry
+#LIBS += -L$$PWD/lib/ -lDT_ios
+#LIBS += -L$$PWD/lib/ -lgeom_func
+#LIBS += -L$$PWD/lib/ -lGSmooth
+#LIBS += -L$$PWD/lib/ -lspr
+#INCLUDEPATH +=$$PWD/DT_ios_include/
+DEFINES += _CONSTRAINED_RECOVERY NDEBUG _CONSOLE _DOUBLE _WRITE_CPP_DOUBLE _TIMING_PERFORMANCE _REPOSITION_STEINER_PNT _ROBUST_BW_KERNEL _NEW_HEAP_DATASTRUCTURE

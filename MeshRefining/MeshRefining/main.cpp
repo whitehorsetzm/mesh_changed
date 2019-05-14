@@ -1,3 +1,8 @@
+#define main_1
+#ifdef main_
+#include "smooth.h"
+#endif
+#ifdef main_1
 #include <iostream>
 #include "dataio.h"
 #include "string.h"
@@ -7,10 +12,60 @@
 #include "openfoamfile.h"
 #include "boundary.h"
 #include "dataclass.h"
+#include "fstream"
+//#include "smooth.h"
 #define VTK_OUTPUT;
 #define DEBUG
 using namespace std;
+int writepl3(char *filename, HYBRID_MESH &file)
+{
+    int npt,nface,ncell,i;
+    FILE *fout = fopen(filename,"w");
+    npt=file.NumNodes;
+    nface=file.NumTris;
+    ncell=file.NumTetras;
+     fprintf(fout,"%d %d %d\n",ncell,npt,nface);
+    for (i = 0; i < npt; i++)
+    {
+        int index = i + 1;
+        double x = file.nodes[i].coord.x;
+        double y = file.nodes[i].coord.y;
+        double z = file.nodes[i].coord.z;
+        fprintf(fout,"%d %lf %lf %lf\n",index,x, y, z);
 
+    }
+
+    for (i = 0; i < ncell; i++)
+    {
+
+        int index = i + 1;
+        int form0 = file.pTetras[i].vertices[0]+1;///////////+1
+        int form1 = file.pTetras[i].vertices[1]+1;
+        int form2 = file.pTetras[i].vertices[2]+1;
+        int form3 = file.pTetras[i].vertices[3]+1;
+
+        fprintf(fout,"%d %d %d %d %d\n",index,form0,form1,form2,form3);
+
+    }
+
+    for (i = 0; i < nface; i++)
+    {
+
+        int index = i + 1;
+        int face0 = file.pTris[i].vertices[0]+1;
+        int face1 = file.pTris[i].vertices[1]+1;
+        int face2 = file.pTris[i].vertices[2]+1;
+        int parent= file.pTris[i].iCell+1;
+   //     cout<<parent<<endl;
+        int iPatch= file.pTris[i].iSurf;
+//        cout<<iPatch+1<<" "<<iPatch<<endl;
+        fprintf(fout,"%d %d %d %d %d %d\n",index,face0,face1,face2,parent,iPatch);
+
+    }
+   fclose(fout);
+
+
+}
 struct Arguments
 {
     Arguments(int nOutputParts)
@@ -115,7 +170,7 @@ static MPI_Comm buildRescatterComm(MPI_Comm commWorld, int nWorkingProcs)
 }
 */
 
-int main(int argc, char *argv[])
+int main1(int argc, char *argv[])
 {
     int rank=-1, size=-1;
     MPI_Init(&argc, &argv);
@@ -135,6 +190,7 @@ int main(int argc, char *argv[])
 
     char filename[256];
     char filenameBC[256];
+
     sprintf(filename, "%s", arguments.caseName);
 
 
@@ -205,6 +261,7 @@ int main(int argc, char *argv[])
         strcat(GM3file, ".gm3");
      ref.read_gm(GM3file);
     }
+
     if (rank == 0)
     {
         char CGNSfile[256];
@@ -213,7 +270,7 @@ int main(int argc, char *argv[])
         strcat(CGNSfile, ".cgns");
          cout<<CGNSfile<<endl;
            cout<<"rank =========="<<rank<<endl;
-         readCGNS(CGNSfile,tetrasfile,bcstring);
+         readCGNS_temp(CGNSfile,tetrasfile,bcstring);
          if(arguments.gmName!=nullptr){                                 //??????????prolem
              char gm3name[256];
          sprintf(gm3name, "%s", arguments.gmName);
@@ -239,8 +296,17 @@ int main(int argc, char *argv[])
                  tetrasfile.pTris[i].iSurface=ref.subject_table[i];
              }
          }
-        setupCellNeig(tetrasfile.NumNodes,tetrasfile.NumTetras,tetrasfile.pTetras);
-        findiCellFast(tetrasfile);
+         setupCellNeig(tetrasfile.NumNodes,tetrasfile.NumTetras,tetrasfile.pTetras);
+//         ofstream neighbor;
+//         neighbor.open("neighbor.txt");
+//          for(int i=0;i<tetrasfile.NumTetras;++i){
+//              neighbor<<"neighbor size : "<<i<<endl;
+//               for(auto a:tetrasfile.pTetras[i].neighbors)      //运行有不确定结果   ok
+//                neighbor<<a<<" ";
+//               neighbor<<endl;
+//          }
+         findiCellFast(tetrasfile);
+        writepl3("test.pl3", tetrasfile);
        // exit(1);
     //    readVTKPLSFile(filename,tetrasfile);
         tetrasfile.NumUniqueSurfFacets=tetrasfile.NumTris;
@@ -528,4 +594,13 @@ int main(int argc, char *argv[])
         cout<<"Finished!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
     return 0;
 }
+#endif
+int main(int argc, char *argv[]){
+#ifdef main_1
+    main1(argc, argv);
+#endif
 
+#ifdef main_2
+    main2(argc, argv);
+#endif
+}

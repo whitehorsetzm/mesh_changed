@@ -9,7 +9,7 @@
  * Chen Jianjun  Center for Engineering & Scientific Computation,
  * Zhejiang University, P. R. China
  * Copyright reserved, 2005, 10, 26
- * 
+ *
  * 联系方式
  *   电话：+86-571-87953165
  *   传真：+86-571-87953167
@@ -32,35 +32,35 @@
 class Vector
 {
 public:
-	Vector() { x = y = z = 0.; }
-	Vector(double v1, double v2, double v3) {
-		x = v1; y = v2; z = v3;
-	}
-	Vector(const Vector& v) {
-		x = v.x;  y = v.y; z = v.z;
-	}
+    Vector() { x = y = z = 0.; }
+    Vector(double v1, double v2, double v3) {
+        x = v1; y = v2; z = v3;
+    }
+    Vector(const Vector& v) {
+        x = v.x;  y = v.y; z = v.z;
+    }
 	
-	/* 矢量求模 calc. magnitude */
-	double magnitude() const;
+    /* 矢量求模 calc. magnitude */
+    double magnitude() const;
 	
-	/* 归一 normalization */
-	void normalize();
+    /* 归一 normalization */
+    void normalize();
 
     //calculate the distance
     double getDistance(const Vector &a);
 
-	/* **********************************
-	 * 重载操作符 overloaded operator 
-	 * **********************************/
+    /* **********************************
+     * 重载操作符 overloaded operator
+     * **********************************/
 
-	/* 赋值 assignment */
-	const Vector& operator = (const Vector& v);
-	const Vector& operator = (double v);
+    /* 赋值 assignment */
+    const Vector& operator = (const Vector& v);
+    const Vector& operator = (double v);
 
-	/* 四则运算 simple mathamatic operator */
+    /* 四则运算 simple mathamatic operator */
     const Vector operator + (const Vector& v) const;
     const Vector operator - (const Vector& v) const;
-    const Vector operator * (double s) const;  
+    const Vector operator * (double s) const;
     const Vector operator / (double s) const;
     
     const Vector& operator += (const Vector& v);
@@ -68,19 +68,19 @@ public:
     const Vector& operator += (double delta);
     const Vector& operator -= (double delta);
 
-	bool operator==(const Vector& v) const;
-	bool operator!=(const Vector& v) const;
+    bool operator==(const Vector& v) const;
+    bool operator!=(const Vector& v) const;
 
-	/* 点积 & 叉积 dot & cross */
-	double operator * (const Vector& v) const;
-	const Vector operator ^ (const Vector& V) const;
-	const Vector operator - ();
+    /* 点积 & 叉积 dot & cross */
+    double operator * (const Vector& v) const;
+    const Vector operator ^ (const Vector& V) const;
+    const Vector operator - ();
 
 //	friend const Vector operator - (const Vector& p);
-	friend const Vector operator * (double scale, const Vector& v);
+    friend const Vector operator * (double scale, const Vector& v);
 
 public:
-	double x, y, z;
+    double x, y, z;
 };
 
 #endif /* __iso3d_vector_h__*/

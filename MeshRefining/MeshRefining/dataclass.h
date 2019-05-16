@@ -48,6 +48,7 @@ public:
     int partMarker;
     int vertices[NoVertices];
     int neighbors[NoFacets];
+    int neighborsmark[NoFacets];
     static const int NumVertices = NoVertices;
     static const int NumNeighbors = NoFacets;
 };

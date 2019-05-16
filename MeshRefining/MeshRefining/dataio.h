@@ -30,6 +30,8 @@ int readValidLine(FILE *fp, char *chLine, int len);
 
 int setupCellNeig(int nNodes, int nElems, TETRAS *pBKGElems);
 
+int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh);
+
 int readVTKPLSFile(char *fname, HYBRID_MESH&file);
 
 int writeVTKFile(char *filename,HYBRID_MESH&file);

@@ -296,7 +296,7 @@ int main1(int argc, char *argv[])
                  tetrasfile.pTris[i].iSurface=ref.subject_table[i];
              }
          }
-         setupCellNeig(tetrasfile.NumNodes,tetrasfile.NumTetras,tetrasfile.pTetras);
+         setupCellNeig_test(tetrasfile.NumNodes,tetrasfile.NumTetras,&tetrasfile);
 //         ofstream neighbor;
 //         neighbor.open("neighbor.txt");
 //          for(int i=0;i<tetrasfile.NumTetras;++i){

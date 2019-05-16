@@ -231,8 +231,6 @@ int partition(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, int s
 
 
 
-
-
     int tempSize=-1;
     int tempID=-1;
     int tempMID=-1;

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <map>
 #include "cgnslib.h"
+#include <fstream>
 
 using namespace std;
 bool isNullOrComment(char* chLine)
@@ -88,12 +89,16 @@ int eraseWhiteSpace(char *chLine)
     return 1; // fail
 }
 
-int setupCellNeig_test(int nNodes, int nElems, PRISM *pHexes)
+int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
 {
-   ofstream test;
-   test.open("test.txt");
-   if(!test.is_open())
-       return 0;
+    HEX *pHexes=mesh->pHexes;
+    PRISM *pPrism=mesh->pPrisms;
+    TETRAS *pTetras=mesh->pTetras;
+
+    int   nHexes=mesh->NumHexes;
+    int   nPrism=mesh->NumPrsm;
+    int   nTetras=mesh->NumTetras;
+
     int nAllocFaceSize = nNodes * 10, nAllocNodeFaceSize = 20384;
     int nFaceSize = 0;
     int *vecRefIntFHash = NULL;
@@ -106,26 +111,32 @@ int setupCellNeig_test(int nNodes, int nElems, PRISM *pHexes)
     int i, j, k, nCommon;
     InterFace faceAd;
 
-    int* cf[5];
-    int cf1[3] = {0, 1, 2};
-    int cf2[3] = {3, 4, 5};
-    int cf3[4] = {0, 1, 4, 3};
-    int cf4[4] = {1, 2, 5, 4};
-    int cf5[4] = {0, 2, 5, 3};
-    cf[0] = cf1;
-    cf[1] = cf2;
-    cf[2] = cf3;
-    cf[3] = cf4;
-    cf[4] = cf5;
+    int* pris[5];
+    int pris1[3] = {0, 1, 2};
+    int pris2[3] = {3, 4, 5};
+    int pris3[4] = {0, 1, 4, 3};
+    int pris4[4] = {1, 2, 5, 4};
+    int pris5[4] = {0, 2, 5, 3};
+    pris[0] = pris1;
+    pris[1] = pris2;
+    pris[2] = pris3;
+    pris[3] = pris4;
+    pris[4] = pris5;
+    static int tet[4][3] = {{1, 2, 3}, {0, 3, 2}, {0, 1, 3}, {0, 2, 1}};
+    static int hex[6][4] = {{0, 1, 5, 4}, {3, 2, 6 ,7}, {5, 6, 7, 4}, {1, 2, 3, 0}, {1, 2, 5, 6}, {0, 3, 7, 4}};
+
 
     int ndSize, clSize;
     //BKGElem *pElem = NULL, *pLft = NULL, *pRgt = NULL;
 
-    PRISM *pElem = nullptr, *pLft=nullptr, *pRgt=nullptr;
+    HEX *pHexes_t=nullptr;
+    PRISM *pPrism_t=nullptr;
+    TETRAS *pTetras_t=nullptr;
 
     vecRefIntFHash = (int *) malloc(sizeof(int)*nNodes);                     //以最小点的值为下标，用面ID为值不断更新，每次更新都记录到face的next，故可以形成链状，最后记录的是链表的起点。
     vecInterFaces = (InterFace *) malloc(sizeof(InterFace)*nAllocFaceSize);  //储存着每个面的信息
     ndIFaces = (int *) malloc(sizeof(int)*nAllocNodeFaceSize);               //储存着面ID
+
     if (!vecRefIntFHash || !vecInterFaces || !ndIFaces)
     {
         errCode = -1;                                                //申请内存空间并验证是否成功
@@ -133,39 +144,56 @@ int setupCellNeig_test(int nNodes, int nElems, PRISM *pHexes)
     }
 
     ndSize = nNodes;
-    clSize = nElems;
-
+    clSize = nHexes+nPrism+nTetras;
     for (i = 0; i < ndSize; i++)
         vecRefIntFHash[i] = -1;
-    for (cellIdx = 0; cellIdx < clSize; cellIdx++)
+    for (cellIdx = 0; cellIdx < nPrism; cellIdx++)
     {
-        pElem = &pHexes[cellIdx];
+
+        pPrism_t = &pPrism[cellIdx];
         for (i = 0; i <= 4; i++)                 //初始化neighbors值为-1  BKG_MESH_DIM == 3
-            pElem->neighbors[i] = -1;
+            pPrism_t->neighbors[i] = -1;
     }
+        cout<<"first"<<endl;
+
+    for (cellIdx = 0; cellIdx < nHexes; cellIdx++)
+    {
+
+        pHexes_t = &pHexes[cellIdx];
+        for (i = 0; i <= 4; i++)                 //初始化neighbors值为-1  BKG_MESH_DIM == 3
+            pHexes_t->neighbors[i] = -1;
+    }
+        cout<<"first"<<endl;
+    for (cellIdx = 0; cellIdx <nTetras; cellIdx++)
+    {
+
+        pTetras_t = &pTetras[cellIdx];
+        for (i = 0; i <= 4; i++)                 //初始化neighbors值为-1  BKG_MESH_DIM == 3
+            pTetras_t->neighbors[i] = -1;
+    }
+        cout<<"first"<<endl;
 
     for (cellIdx = 0; cellIdx < clSize; cellIdx++)
     {
         if (cellIdx % 1000000 == 0 || cellIdx == clSize - 1)
             printf("%%%.2f.\n", 100.0*(cellIdx)/clSize);             //输出工作百分比（仅显示0%和99.99%）这个for内为主要工作循环
-
-        pElem = &pHexes[cellIdx];
-
+    if(cellIdx<nPrism){
+        PRISM  *pLft=nullptr, *pRgt=nullptr;
+        pPrism_t = &pPrism[cellIdx];
         for (i = 0; i <= 4; i++) {
-
-            if(sizeof(cf[i])/sizeof(int)==4){
-            facNdIdx1 = pElem->vertices[cf[i][0]];
-            facNdIdx2 = pElem->vertices[cf[i][1]];                //BKG_MESH_DIM == 3  new BKG_MESH_DIM 应该为5
-            facNdIdx3 = pElem->vertices[cf[i][2]];
-            facNdIdx4 = pElem->vertices[cf[i][3]];
+            if(sizeof(pris[i])/sizeof(int)==4){
+            facNdIdx1 = pPrism_t->vertices[pris[i][0]];
+            facNdIdx2 = pPrism_t->vertices[pris[i][1]];                //BKG_MESH_DIM == 3  new BKG_MESH_DIM 应该为5
+            facNdIdx3 = pPrism_t->vertices[pris[i][2]];
+            facNdIdx4 = pPrism_t->vertices[pris[i][3]];
 
        int facevec[4]={facNdIdx1,facNdIdx2,facNdIdx3,facNdIdx4};
        sort(facevec,facevec+4);
 
             int min=nNodes+10;
             for(int index=0;index<4;++index) {
-                 if(min>pElem->vertices[cf[i][index]])
-                 min=pElem->vertices[cf[i][index]];
+                 if(min>pPrism_t->vertices[pris[i][index]])
+                 min=pPrism_t->vertices[pris[i][index]];
             }
             minFacNdIdx = min;
 
@@ -262,8 +290,8 @@ int setupCellNeig_test(int nNodes, int nElems, PRISM *pHexes)
 
                 lftCell = vecInterFaces[ndIFaces[j]].lftCell;
                 rgtCell = vecInterFaces[ndIFaces[j]].rgtCell;
-                pLft = &pHexes[lftCell];
-                pRgt = &pHexes[rgtCell];                             //
+                pLft = &pPrism[lftCell];
+                pRgt = &pPrism[rgtCell];                             //
 
              for(int k=0;k<6;++k){
                    if(pLft->neighbors[k]==-1)
@@ -288,17 +316,17 @@ int setupCellNeig_test(int nNodes, int nElems, PRISM *pHexes)
             {
 
 
-                facNdIdx1 = pElem->vertices[cf[i][0]];
-                facNdIdx2 = pElem->vertices[cf[i][1]];                //BKG_MESH_DIM == 3  new BKG_MESH_DIM 应该为5
-                facNdIdx3 = pElem->vertices[cf[i][2]];
+                facNdIdx1 = pPrism_t->vertices[pris[i][0]];
+                facNdIdx2 = pPrism_t->vertices[pris[i][1]];                //BKG_MESH_DIM == 3  new BKG_MESH_DIM 应该为5
+                facNdIdx3 = pPrism_t->vertices[pris[i][2]];
 
                 int facevec[3]={facNdIdx1,facNdIdx2,facNdIdx3};
                 sort(facevec,facevec+3);
 
                      int min=nNodes+10;
                      for(int index=0;index<3;++index) {
-                          if(min>pElem->vertices[cf[i][index]])
-                          min=pElem->vertices[cf[i][index]];
+                          if(min>pPrism_t->vertices[pris[i][index]])
+                          min=pPrism_t->vertices[pris[i][index]];
                      }
                      minFacNdIdx = min;
 
@@ -392,8 +420,8 @@ int setupCellNeig_test(int nNodes, int nElems, PRISM *pHexes)
 
                     lftCell = vecInterFaces[ndIFaces[j]].lftCell;
                     rgtCell = vecInterFaces[ndIFaces[j]].rgtCell;
-                    pLft = &pHexes[lftCell];
-                    pRgt = &pHexes[rgtCell];                             //
+                    pLft = &pPrism[lftCell];
+                    pRgt = &pPrism[rgtCell];                             //
 
                  for(int k=0;k<6;++k){
 
@@ -421,6 +449,290 @@ int setupCellNeig_test(int nNodes, int nElems, PRISM *pHexes)
     }
 
     }
+    else if(cellIdx<nPrism+nHexes){
+         pHexes_t = &pHexes[cellIdx];
+         HEX  *pLft=nullptr, *pRgt=nullptr;
+        for (i = 0; i <= 5; i++) {
+                    facNdIdx1 = pHexes_t->vertices[hex[i][0]];
+                    facNdIdx2 = pHexes_t->vertices[hex[i][1]];                //BKG_MESH_DIM == 3  new BKG_MESH_DIM 应该为5
+                    facNdIdx3 = pHexes_t->vertices[hex[i][2]];
+                    facNdIdx4 = pHexes_t->vertices[hex[i][3]];
+
+        int facevec[4]={facNdIdx1,facNdIdx2,facNdIdx3,facNdIdx4};
+               sort(facevec,facevec+4);
+
+                    int min=nNodes+10;
+                    for(int index=0;index<4;++index) {
+                         if(min>pPrism_t->vertices[hex[i][index]])
+                         min=pPrism_t->vertices[hex[i][index]];
+                    }
+                    minFacNdIdx = min;
+         //      cout<<facNdIdx1<<" "<<facNdIdx2<<" "<<facNdIdx3<<" "<<facNdIdx4<<" "<<min<<endl;
+              //      cout<<min<<endl;
+                           //找出最小序号点
+                    //		nodeInterFace(minFacNdIdx, ndIFaces, &ndIFaceSize, vecInterFaces, vecRefIntFHash);
+
+
+                    j = 0;
+                    faceIt = vecRefIntFHash[minFacNdIdx];      //该点对应的neighbors为faceIt
+                    while (faceIt >= 0)                        //若该点(最小点)已经有对应的Neighbors（面的neighbors储存在对角点）
+                    {
+                        if (j >= nAllocNodeFaceSize)           //j是什么？     ndIFaces空间不足 重新分配
+                        {
+                            nAllocNodeFaceSize += MAX_VALUE(100, (int)(nAllocNodeFaceSize * 0.1));
+                            ndIFaces_Temp = (int*)realloc(ndIFaces, sizeof(int)*nAllocNodeFaceSize);
+                            if (!ndIFaces_Temp)
+                            {
+                                errCode = -1;
+                                goto FAIL;
+                            }
+                            ndIFaces = ndIFaces_Temp;
+                        }
+                        ndIFaces[j++] = faceIt;                //ndIFaces空间足够，则按顺序将
+                                                                                                  //class InterFace
+                                                                                                  //{
+                                                                                                  //public:
+                                                                                                  //    int conn[BKG_MESH_DIM];  //面的点ID
+                                                                                                  //    int lftCell, rgtCell;    //左右邻接体
+                                                                                                  //    int hashNxt;             //
+                                                                                                  //};
+
+                        faceIt= vecInterFaces[faceIt].hashNxt;  //neighbors的hasnext的意义？
+                    }
+                    ndIFaceSize = j;
+              //      cout<<"j   "<<j<<endl;
+                                                                   //j以及vecRefIntFHash的作用应该是为了加速查找重合面，否则遍历vecInterFaces即可
+                                                                   //vecRefIntFHash中存的面必然和当前面有联系
+                                                                   //
+
+                    nCommon = 0;
+                    for (j = 0;	j < ndIFaceSize; j++) {                 //对faceIt 也就是一个点周围一圈的面进行遍历找出重合面
+                        nCommon = 0;
+                        for (k = 0; k < 4; k++)
+                            if (vecInterFaces[ndIFaces[j]].conn[k] == facNdIdx1 ||
+                                    vecInterFaces[ndIFaces[j]].conn[k] == facNdIdx2 ||
+                                    vecInterFaces[ndIFaces[j]].conn[k] == facNdIdx3||
+                                vecInterFaces[ndIFaces[j]].conn[k] == facNdIdx4)
+                                nCommon++;
+                        if (nCommon >= 4)
+                        {
+          //                  cout<<"find it !!!!!!!!!"<<endl;
+                            break;
+                        }
+                    }
+               //     cout<<"nCommon"<<nCommon<<endl;
+
+                    if (nCommon < 4) {//未找到重合面，循环结束退出，说明该面尚未放入容器，该面尚未登记过lftCell。则进行登记操作
+                        /* 没锟斤拷锟揭碉拷 */
+                        if (nFaceSize >= nAllocFaceSize)                      //若空间不足则扩大空间
+                        {
+                            nAllocFaceSize += MAX_VALUE(100, (int)(nAllocFaceSize * 0.1));
+                            vecInterFaces_Temp = (InterFace*)realloc(vecInterFaces, sizeof(InterFace)*nAllocFaceSize);
+                            if (!vecInterFaces_Temp)
+                            {
+                                errCode = -1;
+                                goto FAIL;
+                            }
+                            vecInterFaces = vecInterFaces_Temp;
+                        }
+
+                        faceAd.conn[0] = facNdIdx1;          //面的conn点
+                        faceAd.conn[1] = facNdIdx2;
+                        faceAd.conn[2] = facNdIdx3;
+                        faceAd.conn[3] = facNdIdx4;
+                        faceAd.lftCell = cellIdx;           //当前体中的面毫无疑问有一个邻接体是当前体
+                        faceAd.rgtCell = -1;
+
+                        faceAdIdx = nFaceSize;
+                        faceAd.hashNxt = vecRefIntFHash[minFacNdIdx];     //上一个faceAdIdx被放入此处，第一个faceAD的hasNxt为-1
+                        vecRefIntFHash[minFacNdIdx] = faceAdIdx;          //faceAdIdx被放入此处，给下一个faceAd作为next。
+                        vecInterFaces[nFaceSize++] = faceAd;              //faceAd顺序放入容器
+                    //    cout<<nFaceSize<<endl;
+                    }
+
+
+                                                                                   //找到重合面由break退出
+                    else {
+
+                        if(!(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
+                             vecInterFaces[ndIFaces[j]].rgtCell < 0))
+                            cout<<cellIdx<<endl;
+
+                        assert(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
+                                vecInterFaces[ndIFaces[j]].rgtCell < 0);
+
+
+                        vecInterFaces[ndIFaces[j]].rgtCell = cellIdx;              //既然有重合面，说明该面已经登记过，说明该面已有lftCell
+                                                                                   //那么当前体就是该面的rgtCell。
+
+                        lftCell = vecInterFaces[ndIFaces[j]].lftCell;
+                        rgtCell = vecInterFaces[ndIFaces[j]].rgtCell;
+                        pLft = &pHexes[lftCell];
+                        pRgt = &pHexes[rgtCell];                             //
+
+                     for(int k=0;k<6;++k){
+          //               cout<<"start"<<endl;
+                           if(pLft->neighbors[k]==-1)
+                        {
+                            pLft->neighbors[k] = rgtCell;
+                            pLft->neighborsmark[k]=double((facevec[0]+facevec[1]*2+facevec[2]*3+facevec[3]*4))/10;
+                         //   cout<<pLft->neighborsmark[k]<<endl;
+                            break;
+                        }
+                     }
+
+                        pRgt->neighbors[i] = lftCell;
+                        pRgt->neighborsmark[i]=double((facevec[0]+facevec[1]*2+facevec[2]*3+facevec[3]*4))/10;
+
+                                                                    //在两个相邻的体的neighbors中互相储存对方。（下标为什么为i和k？）
+                                                      //i在此循环中代表该体的当前面，k则代表当前面的对点编号
+                    }                                                         //由cf[4][3]可以看出，此时k恒等于i
+                                                                            //此时对于rgtCell来讲，自然是能保证neighbors[0]不被覆盖
+                                                                            //lftCell如何保证？
+                }
+            }
+
+    else if(cellIdx<nPrism+nHexes+nTetras){
+       pTetras_t = &pTetras[cellIdx];
+       TETRAS  *pLft=nullptr, *pRgt=nullptr;
+       for (i = 0; i <= 3; i++) {
+                   facNdIdx1 = pTetras_t->vertices[tet[i][0]];
+                   facNdIdx2 = pTetras_t->vertices[tet[i][1]];                //BKG_MESH_DIM == 3  new BKG_MESH_DIM 应该为5
+                   facNdIdx3 = pTetras_t->vertices[tet[i][2]];
+
+       int facevec[3]={facNdIdx1,facNdIdx2,facNdIdx3};
+              sort(facevec,facevec+3);
+
+                   int min=nNodes+10;
+                   for(int index=0;index<3;++index) {
+                        if(min>pTetras_t->vertices[tet[i][index]])
+                        min=pTetras_t->vertices[tet[i][index]];
+                   }
+                   minFacNdIdx = min;
+        //      cout<<facNdIdx1<<" "<<facNdIdx2<<" "<<facNdIdx3<<" "<<facNdIdx4<<" "<<min<<endl;
+             //      cout<<min<<endl;
+                          //找出最小序号点
+                   //		nodeInterFace(minFacNdIdx, ndIFaces, &ndIFaceSize, vecInterFaces, vecRefIntFHash);
+
+
+                   j = 0;
+                   faceIt = vecRefIntFHash[minFacNdIdx];      //该点对应的neighbors为faceIt
+                   while (faceIt >= 0)                        //若该点(最小点)已经有对应的Neighbors（面的neighbors储存在对角点）
+                   {
+                       if (j >= nAllocNodeFaceSize)           //j是什么？     ndIFaces空间不足 重新分配
+                       {
+                           nAllocNodeFaceSize += MAX_VALUE(100, (int)(nAllocNodeFaceSize * 0.1));
+                           ndIFaces_Temp = (int*)realloc(ndIFaces, sizeof(int)*nAllocNodeFaceSize);
+                           if (!ndIFaces_Temp)
+                           {
+                               errCode = -1;
+                               goto FAIL;
+                           }
+                           ndIFaces = ndIFaces_Temp;
+                       }
+                       ndIFaces[j++] = faceIt;                //ndIFaces空间足够，则按顺序将
+                                                                                                 //class InterFace
+                                                                                                 //{
+                                                                                                 //public:
+                                                                                                 //    int conn[BKG_MESH_DIM];  //面的点ID
+                                                                                                 //    int lftCell, rgtCell;    //左右邻接体
+                                                                                                 //    int hashNxt;             //
+                                                                                                 //};
+
+                       faceIt= vecInterFaces[faceIt].hashNxt;  //neighbors的hasnext的意义？
+                   }
+                   ndIFaceSize = j;
+             //      cout<<"j   "<<j<<endl;
+                                                                  //j以及vecRefIntFHash的作用应该是为了加速查找重合面，否则遍历vecInterFaces即可
+                                                                  //vecRefIntFHash中存的面必然和当前面有联系
+                                                                  //
+
+                   nCommon = 0;
+                   for (j = 0;	j < ndIFaceSize; j++) {                 //对faceIt 也就是一个点周围一圈的面进行遍历找出重合面
+                       nCommon = 0;
+                       for (k = 0; k < 3; k++)
+                           if (vecInterFaces[ndIFaces[j]].conn[k] == facNdIdx1 ||
+                                   vecInterFaces[ndIFaces[j]].conn[k] == facNdIdx2 ||
+                                   vecInterFaces[ndIFaces[j]].conn[k] == facNdIdx3)
+                               nCommon++;
+                       if (nCommon >= 3)
+                       {
+         //                  cout<<"find it !!!!!!!!!"<<endl;
+                           break;
+                       }
+                   }
+              //     cout<<"nCommon"<<nCommon<<endl;
+
+                   if (nCommon < 3) {//未找到重合面，循环结束退出，说明该面尚未放入容器，该面尚未登记过lftCell。则进行登记操作
+                       /* 没锟斤拷锟揭碉拷 */
+                       if (nFaceSize >= nAllocFaceSize)                      //若空间不足则扩大空间
+                       {
+                           nAllocFaceSize += MAX_VALUE(100, (int)(nAllocFaceSize * 0.1));
+                           vecInterFaces_Temp = (InterFace*)realloc(vecInterFaces, sizeof(InterFace)*nAllocFaceSize);
+                           if (!vecInterFaces_Temp)
+                           {
+                               errCode = -1;
+                               goto FAIL;
+                           }
+                           vecInterFaces = vecInterFaces_Temp;
+                       }
+
+                       faceAd.conn[0] = facNdIdx1;          //面的conn点
+                       faceAd.conn[1] = facNdIdx2;
+                       faceAd.conn[2] = facNdIdx3;
+                       faceAd.lftCell = cellIdx;           //当前体中的面毫无疑问有一个邻接体是当前体
+                       faceAd.rgtCell = -1;
+
+                       faceAdIdx = nFaceSize;
+                       faceAd.hashNxt = vecRefIntFHash[minFacNdIdx];     //上一个faceAdIdx被放入此处，第一个faceAD的hasNxt为-1
+                       vecRefIntFHash[minFacNdIdx] = faceAdIdx;          //faceAdIdx被放入此处，给下一个faceAd作为next。
+                       vecInterFaces[nFaceSize++] = faceAd;              //faceAd顺序放入容器
+                   //    cout<<nFaceSize<<endl;
+                   }
+
+
+                                                                                  //找到重合面由break退出
+                   else {
+
+                       if(!(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
+                            vecInterFaces[ndIFaces[j]].rgtCell < 0))
+                           cout<<cellIdx<<endl;
+
+                       assert(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
+                               vecInterFaces[ndIFaces[j]].rgtCell < 0);
+
+
+                       vecInterFaces[ndIFaces[j]].rgtCell = cellIdx;              //既然有重合面，说明该面已经登记过，说明该面已有lftCell
+                                                                                  //那么当前体就是该面的rgtCell。
+
+                       lftCell = vecInterFaces[ndIFaces[j]].lftCell;
+                       rgtCell = vecInterFaces[ndIFaces[j]].rgtCell;
+                       pLft = &pTetras[lftCell];
+                       pRgt = &pTetras[rgtCell];                             //
+
+                    for(int k=0;k<4;++k){
+         //               cout<<"start"<<endl;
+                          if(pLft->neighbors[k]==-1)
+                       {
+                           pLft->neighbors[k] = rgtCell;
+                           pLft->neighborsmark[k]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
+                        //   cout<<pLft->neighborsmark[k]<<endl;
+                           break;
+                       }
+                    }
+
+                       pRgt->neighbors[i] = lftCell;
+                       pRgt->neighborsmark[i]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
+
+                                                                   //在两个相邻的体的neighbors中互相储存对方。（下标为什么为i和k？）
+                                                     //i在此循环中代表该体的当前面，k则代表当前面的对点编号
+                   }                                                         //由cf[4][3]可以看出，此时k恒等于i
+                                                                           //此时对于rgtCell来讲，自然是能保证neighbors[0]不被覆盖
+                                                                           //lftCell如何保证？
+               }
+    }
+    }
+
     goto END;
 FAIL:
 END:

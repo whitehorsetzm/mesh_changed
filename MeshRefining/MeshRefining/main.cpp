@@ -270,7 +270,7 @@ int main1(int argc, char *argv[])
         strcat(CGNSfile, ".cgns");
          cout<<CGNSfile<<endl;
            cout<<"rank =========="<<rank<<endl;
-         readCGNS_temp(CGNSfile,tetrasfile,bcstring);
+         readCGNS(CGNSfile,tetrasfile,bcstring);
          if(arguments.gmName!=nullptr){                                 //??????????prolem
              char gm3name[256];
          sprintf(gm3name, "%s", arguments.gmName);
@@ -305,7 +305,10 @@ int main1(int argc, char *argv[])
 //                neighbor<<a<<" ";
 //               neighbor<<endl;
 //          }
-         findiCellFast(tetrasfile);
+         findiCellFast_temp(tetrasfile);
+         for(int i=0;i<tetrasfile.NumTris;++i){
+     //        cout<<tetrasfile.pTris[i].iCell<<endl;
+         }
         writepl3("test.pl3", tetrasfile);
        // exit(1);
     //    readVTKPLSFile(filename,tetrasfile);

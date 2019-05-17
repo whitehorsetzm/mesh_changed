@@ -98,7 +98,6 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
     int   nHexes=mesh->NumHexes;
     int   nPrism=mesh->NumPrsm;
     int   nTetras=mesh->NumTetras;
-
     int nAllocFaceSize = nNodes * 10, nAllocNodeFaceSize = 20384;
     int nFaceSize = 0;
     int *vecRefIntFHash = NULL;
@@ -154,7 +153,6 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
         for (i = 0; i <= 4; i++)                 //初始化neighbors值为-1  BKG_MESH_DIM == 3
             pPrism_t->neighbors[i] = -1;
     }
-        cout<<"first"<<endl;
 
     for (cellIdx = 0; cellIdx < nHexes; cellIdx++)
     {
@@ -163,7 +161,6 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
         for (i = 0; i <= 4; i++)                 //初始化neighbors值为-1  BKG_MESH_DIM == 3
             pHexes_t->neighbors[i] = -1;
     }
-        cout<<"first"<<endl;
     for (cellIdx = 0; cellIdx <nTetras; cellIdx++)
     {
 
@@ -171,13 +168,13 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
         for (i = 0; i <= 4; i++)                 //初始化neighbors值为-1  BKG_MESH_DIM == 3
             pTetras_t->neighbors[i] = -1;
     }
-        cout<<"first"<<endl;
 
     for (cellIdx = 0; cellIdx < clSize; cellIdx++)
     {
         if (cellIdx % 1000000 == 0 || cellIdx == clSize - 1)
             printf("%%%.2f.\n", 100.0*(cellIdx)/clSize);             //输出工作百分比（仅显示0%和99.99%）这个for内为主要工作循环
     if(cellIdx<nPrism){
+     //   cout<<"aaaaa"<<endl;
         PRISM  *pLft=nullptr, *pRgt=nullptr;
         pPrism_t = &pPrism[cellIdx];
         for (i = 0; i <= 4; i++) {
@@ -213,8 +210,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                     }
                     ndIFaces = ndIFaces_Temp;
                 }
-                ndIFaces[j++] = faceIt;                //ndIFaces空间足够，则按顺序将已经录入的面id加入数组ndIFaces
-                                                                                          //class InterFace
+                ndIFaces[j++] = faceIt;                //ndIFaces空间足够，则按顺序将已经录入的面id加入数组ndIFaces                                                                     //class InterFace
                                                                                           //{
                                                                                           //public:
                                                                                           //    int conn[BKG_MESH_DIM];  //面的点ID
@@ -224,9 +220,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
 
                 faceIt= vecInterFaces[faceIt].hashNxt;
             }
-            ndIFaceSize = j;                      //j为已录入的数量
-                                                           //j以及vecRefIntFHash的作用应该是为了加速查找重合面，否则遍历vecInterFaces即可
-                                                           //vecRefIntFHash中存的面必然和当前面有联系
+            ndIFaceSize = j;                      //j为已录入的数量                                               //j以及vecRefIntFHash的作用应该是为了加速查找重合面，否则遍历vecInterFaces即可                                             //vecRefIntFHash中存的面必然和当前面有联系
                                                            //
 
             nCommon = 0;
@@ -346,8 +340,8 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                         ndIFaces = ndIFaces_Temp;
                     }
                     ndIFaces[j++] = faceIt;                //ndIFaces空间足够，则按顺序将
-                                                                                              //class InterFace
-                                                                                              //{
+       //              cout<<faceIt<<endl;                                                                         //class InterFace
+                                                                                               //{
                                                                                               //public:
                                                                                               //    int conn[BKG_MESH_DIM];  //面的点ID
                                                                                               //    int lftCell, rgtCell;    //左右邻接体
@@ -371,7 +365,8 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                             nCommon++;
                     if (nCommon >= 3)
                     {
-          //              cout<<"find it !!!!!!!!!"<<endl;
+  //                      cout<<ndIFaceSize<<endl;
+//                        cout<<"find it !!!!!!!!!"<<endl;
                         break;
                     }
                 }
@@ -408,7 +403,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                     if(!(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
                          vecInterFaces[ndIFaces[j]].rgtCell < 0))
                     {
-                        cout<<ndIFaces[j]<<endl;
+             //           cout<<ndIFaces[j]<<endl;
                     }
 
                     assert(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
@@ -450,6 +445,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
 
     }
     else if(cellIdx<nPrism+nHexes){
+      //  cout<<"aaaaa"<<endl;
          pHexes_t = &pHexes[cellIdx];
          HEX  *pLft=nullptr, *pRgt=nullptr;
         for (i = 0; i <= 5; i++) {
@@ -556,7 +552,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
 
                         if(!(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
                              vecInterFaces[ndIFaces[j]].rgtCell < 0))
-                            cout<<cellIdx<<endl;
+             //               cout<<cellIdx<<endl;
 
                         assert(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
                                 vecInterFaces[ndIFaces[j]].rgtCell < 0);
@@ -665,6 +661,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
 
                    if (nCommon < 3) {//未找到重合面，循环结束退出，说明该面尚未放入容器，该面尚未登记过lftCell。则进行登记操作
                        /* 没锟斤拷锟揭碉拷 */
+
                        if (nFaceSize >= nAllocFaceSize)                      //若空间不足则扩大空间
                        {
                            nAllocFaceSize += MAX_VALUE(100, (int)(nAllocFaceSize * 0.1));
@@ -693,10 +690,9 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
 
                                                                                   //找到重合面由break退出
                    else {
-
                        if(!(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
                             vecInterFaces[ndIFaces[j]].rgtCell < 0))
-                           cout<<cellIdx<<endl;
+                //           cout<<cellIdx<<endl;
 
                        assert(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
                                vecInterFaces[ndIFaces[j]].rgtCell < 0);
@@ -1101,6 +1097,89 @@ END:
     return errCode;
 }
 
+int findiCellFast_temp(HYBRID_MESH &file)
+{
+    static int tet[4][3] = {{1, 2, 3}, {0, 3, 2}, {0, 1, 3}, {0, 2, 1}};
+    int neigbor=-2;
+    int count=0;
+    set<int>cellIDs;
+
+    map<string,int> trimap;
+
+    int v[3];
+    for(int i=0;i<file.NumTris;i++)
+    {
+        v[0]=file.pTris[i].vertices[0];
+        v[1]=file.pTris[i].vertices[1];
+        v[2]=file.pTris[i].vertices[2];
+        sort(v,v+3);
+        string temp=IntToString(v[0])+"_"+IntToString(v[1])+"_"+IntToString(v[2]);
+        trimap[temp]=i;
+
+    }
+
+   int neigbormark=-1;
+    map<string,int>::iterator mapIter;
+    for(int i=0;i<file.NumTetras;i++)
+    {
+        neigbormark=-1;
+        for(int j=0;j<4;j++)
+        {
+            neigbor=file.pTetras[i].neighbors[j];
+            neigbormark=file.pTetras[i].neighborsmark[j];
+
+            if(neigbor==-1)
+            {
+               // count++;
+
+                cellIDs.insert(i);
+//                for(int k=0;k<4;k++)
+//                {
+//                    if(k!=j)
+//                    {
+//                        v[count]=file.pTetras[i].vertices[k];
+//                        count++;
+//                    }
+//                }
+                int facNdIdx1,facNdIdx2,facNdIdx3;
+                int vec[3];
+                   for (int k = 0; k <= 3;k++) {
+                facNdIdx1 = file.pTetras[i].vertices[tet[k][0]];
+                facNdIdx2 = file.pTetras[i].vertices[tet[k][1]];
+                facNdIdx3 = file.pTetras[i].vertices[tet[k][2]];
+
+                vec[0]=facNdIdx1;
+                vec[1]=facNdIdx2;
+                vec[2]=facNdIdx3;
+
+                sort(vec,vec+3);
+                if(double(vec[0]+vec[1]*2+vec[2]*3)/10==neigbormark)
+                    break;
+                   }
+                   if(i==4)
+                       cout<<"error at find face"<<endl;
+
+                string temp=IntToString(vec[0])+"_"+IntToString(vec[1])+"_"+IntToString(vec[2]);
+                mapIter=trimap.find(temp);
+                if(mapIter==trimap.end())
+                {
+                    cout<<"Error in finding iCell!"<<endl;
+                }
+                 else
+                {
+
+                    int triID=mapIter->second;
+                    cout<<triID<<endl;
+                    file.pTris[triID].iCell=i;
+                }
+            }
+        }
+    }
+
+    cout<<"Finding iCell finished!"<<endl;
+    return 1;
+}
+
 
 int findiCellFast(HYBRID_MESH &file)
 {
@@ -1122,6 +1201,11 @@ int findiCellFast(HYBRID_MESH &file)
         string temp=IntToString(v[0])+"_"+IntToString(v[1])+"_"+IntToString(v[2]);
         trimap[temp]=i;
     }
+//    for(int i=0;i<file.NumTetras;++i){
+//        for(int j=0;j<4;++j)
+//    cout<<file.pTetras[i].neighbors[j]<<" ";
+//        cout<<endl;
+//    }
 
 
     map<string,int>::iterator mapIter;
@@ -1157,7 +1241,7 @@ int findiCellFast(HYBRID_MESH &file)
                 {
                     int triID=mapIter->second;
                     file.pTris[triID].iCell=i;
-                 //   cout<<i<<endl;
+                    cout<<i<<endl;
                 }
                 assert(count==3);
             }
@@ -1667,13 +1751,14 @@ int readCGNS_temp(char*filename,HYBRID_MESH&mesh,vector<string>&bcstring)
     for(int i=0;i<nprism;i++)
     {
 
-        mesh.pTetras[i].index=i;
-        mesh.pTetras[i].vertices[0]=prism[i*6+0]-1;
-        mesh.pTetras[i].vertices[1]=prism[i*6+1]-1;
-        mesh.pTetras[i].vertices[2]=prism[i*6+2]-1;
-        mesh.pTetras[i].vertices[3]=prism[i*6+3]-1;
-        mesh.pTetras[i].vertices[4]=prism[i*6+4]-1;
-        mesh.pTetras[i].vertices[5]=prism[i*6+5]-1;
+        mesh.pPrisms[i].index=i;
+
+        mesh.pPrisms[i].vertices[0]=prism[i*6+0]-1;
+        mesh.pPrisms[i].vertices[1]=prism[i*6+1]-1;
+        mesh.pPrisms[i].vertices[2]=prism[i*6+2]-1;
+        mesh.pPrisms[i].vertices[3]=prism[i*6+3]-1;
+        mesh.pPrisms[i].vertices[4]=prism[i*6+4]-1;
+        mesh.pPrisms[i].vertices[5]=prism[i*6+5]-1;
     }
 
     for(int i=0;i<ntetras;i++)

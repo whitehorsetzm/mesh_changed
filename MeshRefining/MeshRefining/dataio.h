@@ -44,6 +44,8 @@ bool isSameTriangle(int *tri1,int *tri2);
 
 int findiCell(HYBRID_MESH &file);
 
+int findiCellFast_temp(HYBRID_MESH &file);
+
 int findiCellFast(HYBRID_MESH &file);
 
 //int readVTKPLSFile(char*fname,TETRASFILE&file);

@@ -48,7 +48,7 @@ public:
     int partMarker;
     int vertices[NoVertices];
     int neighbors[NoFacets];
-    int neighborsmark[NoFacets];
+    double neighborsmark[NoFacets];
     static const int NumVertices = NoVertices;
     static const int NumNeighbors = NoFacets;
 };
@@ -126,6 +126,10 @@ ELEMENT<NoVertices,NoFacets>::ELEMENT()
     for(int i=0;i<NumNeighbors;i++)
     {
         neighbors[i]=-1;
+    }
+    for(int i=0;i<NumNeighbors;i++)
+    {
+        neighborsmark[i]=-1;
     }
 }
 

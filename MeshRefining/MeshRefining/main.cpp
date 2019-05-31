@@ -270,7 +270,42 @@ int main1(int argc, char *argv[])
         strcat(CGNSfile, ".cgns");
          cout<<CGNSfile<<endl;
            cout<<"rank =========="<<rank<<endl;
-         readCGNS(CGNSfile,tetrasfile,bcstring);
+         readCGNS_temp(CGNSfile,tetrasfile,bcstring);
+
+
+         ofstream a;
+         a.open("vtk.vtk");
+         a<<"# vtk DataFile Version 2.0"<<endl;
+         a<<"boundary layer mesh"<<endl;
+         a<<"ASCII"<<endl;
+         a<<"DATASET UNSTRUCTURED_GRID"<<endl;
+         a<<"POINTS "<<tetrasfile.NumNodes<<" float"<<endl;
+         for(int i=0;i<tetrasfile.NumNodes;++i){
+             a<<tetrasfile.nodes[i].coord.x<<" "<<tetrasfile.nodes[i].coord.y<<" "<<tetrasfile.nodes[i].coord.z<<endl;
+         }
+         a<<"CELLS"<<" "<<tetrasfile.numOfCells()<<" "<<tetrasfile.NumPrsm*7+tetrasfile.NumTetras*5<<endl;
+         for(int i=0;i<tetrasfile.NumPrsm;++i){
+             a<<6;
+             for(int j=0;j<6;++j){
+                 a<<" "<<tetrasfile.pPrisms[i].vertices[j];
+             }
+             a<<endl;
+         }
+         for(int i=0;i<tetrasfile.NumTetras;++i){
+             a<<4;
+             for(int j=0;j<4;++j){
+                 a<<" "<<tetrasfile.pTetras[i].vertices[j];
+             }
+             a<<endl;
+         }
+         a<<"CELL_TYPES "<<tetrasfile.numOfCells()<<endl;
+         for(int i=0;i<tetrasfile.NumPrsm;++i){
+             a<<13<<endl;
+         }
+         for(int i=0;i<tetrasfile.NumTetras;++i){
+             a<<10<<endl;
+         }
+         a.close();
          if(arguments.gmName!=nullptr){                                 //??????????prolem
              char gm3name[256];
          sprintf(gm3name, "%s", arguments.gmName);
@@ -289,6 +324,11 @@ int main1(int argc, char *argv[])
                  vertices[i*3+1]=tetrasfile.pTris[i].vertices[1];
                  vertices[i*3+2]=tetrasfile.pTris[i].vertices[2];
              }
+
+
+
+
+
 //             GBSolid gbsolid;
 //             read_gm3(GM3file,&gbsolid);
              ref.initial(tetrasfile.NumNodes,coord,tetrasfile.NumTris,vertices);
@@ -306,9 +346,9 @@ int main1(int argc, char *argv[])
 //               neighbor<<endl;
 //          }
          findiCellFast_temp(tetrasfile);
-         for(int i=0;i<tetrasfile.NumTris;++i){
-     //        cout<<tetrasfile.pTris[i].iCell<<endl;
-         }
+//         for(int i=0;i<tetrasfile.NumTris;++i){
+//             cout<<tetrasfile.pTris[i].iCell<<endl;
+//         }
         writepl3("test.pl3", tetrasfile);
        // exit(1);
     //    readVTKPLSFile(filename,tetrasfile);
@@ -316,11 +356,8 @@ int main1(int argc, char *argv[])
         int nparts=size;
         if (expectVolume != 0)
             refineTimes = expectVolume/tetrasfile.NumTetras/8;
-
-        meshParts = new HYBRID_MESH [nparts];        
-        partition(tetrasfile,meshParts,nparts);
-
-
+        meshParts = new HYBRID_MESH [nparts];
+        partition_test(tetrasfile,meshParts,nparts);
 #ifdef VTK_OUTPUT
         writeVTKFile("cube_partition.vtk", tetrasfile);
         writeTriangleVTKFile("cube_surface.vtk", tetrasfile);
@@ -336,8 +373,6 @@ int main1(int argc, char *argv[])
         workerProc(rank,construcTetras,refineTimes,bcstring,MPI_COMM_WORLD);
 
     cout<<"refine times "<<refineTimes<<endl;
-
-
     for (int i = 0; i < bcstring.size(); ++i)
         cout << bcstring[i];
     cout <<rank<<"  Received!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";

@@ -13,6 +13,12 @@
 #include <fstream>
 
 using namespace std;
+bool equal(double a, double b) {
+        if ((a- b> -0.000001) && (a- b) < 0.000001)
+            return true;
+        else
+            return false;
+    }
 bool isNullOrComment(char* chLine)
 {
     char *str = chLine;
@@ -107,6 +113,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
     int cellIdx, faceAdIdx, lftCell, rgtCell;
     int facNdIdx1, facNdIdx2, facNdIdx3,facNdIdx4, minFacNdIdx, faceIt;
     int ndIFaceSize = 0;
+    int pnum = 0;
     int i, j, k, nCommon;
     InterFace faceAd;
 
@@ -121,10 +128,63 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
     pris[2] = pris3;
     pris[3] = pris4;
     pris[4] = pris5;
+  //  int* pris_tri[];
     static int tet[4][3] = {{1, 2, 3}, {0, 3, 2}, {0, 1, 3}, {0, 2, 1}};
     static int hex[6][4] = {{0, 1, 5, 4}, {3, 2, 6 ,7}, {5, 6, 7, 4}, {1, 2, 3, 0}, {1, 2, 5, 6}, {0, 3, 7, 4}};
-
-
+     int vect[3];
+     int qua[4];
+    for(int i=0;i<nTetras;++i){
+        for(int j=0;j<4;++j)
+       {
+        vect[0]=mesh->pTetras[i].vertices[tet[j][0]];
+        vect[1]=mesh->pTetras[i].vertices[tet[j][1]];
+        vect[2]=mesh->pTetras[i].vertices[tet[j][2]];
+        sort(vect,vect+3);
+        mesh->pTetras[i].neighborsmark[j]=double(vect[0]*3+vect[1]*5+vect[2]*7)/10;
+        }
+    }
+    for(int i=0;i<nPrism;++i){
+        for(int j=0;j<2;++j)
+       {
+        vect[0]=mesh->pPrisms[i].vertices[pris[j][0]];
+        vect[1]=mesh->pPrisms[i].vertices[pris[j][1]];
+        vect[2]=mesh->pPrisms[i].vertices[pris[j][2]];
+        sort(vect,vect+3);
+        mesh->pPrisms[i].neighborsmark[j]=double(vect[0]*3+vect[1]*5+vect[2]*7)/10;
+//        cout<<double(vect[0]*3+vect[1]*5+vect[2]*7)/10;
+        }
+        for(int j=2;j<5;++j)
+       {
+        qua[0]=mesh->pPrisms[i].vertices[pris[j][0]];
+        qua[1]=mesh->pPrisms[i].vertices[pris[j][1]];
+        qua[2]=mesh->pPrisms[i].vertices[pris[j][2]];
+        qua[3]=mesh->pPrisms[i].vertices[pris[j][3]];
+        sort(qua,qua+4);
+        mesh->pPrisms[i].neighborsmark[j]=double(qua[0]*3+qua[1]*5+qua[2]*7+qua[3]*11)/10;
+//        cout<<double(qua[0]*3+qua[1]*5+qua[2]*7+qua[3]*11)/10;
+        }
+    }
+    for(int i=0;i<mesh->NumPrsm;++i){
+ //       cout<<"pris "<<i<<" neigbor ";
+        for(int j=0;j<5;++j){
+  //          cout<<mesh->pPrisms[i].neighborsmark[j]<<" ";
+        }
+//        cout<<endl;
+    }
+    for(int i=0;i<mesh->NumTetras;++i){
+ //       cout<<"Tetras "<<i<<" neigbor ";
+        for(int j=0;j<4;++j){
+//            cout<<mesh->pTetras[i].neighborsmark[j]<<" ";
+        }
+ //       cout<<endl;
+    }
+//   int a;
+//   cin>>a;    //pause;
+//    for(int i=0;i<nTetras;++i){
+//        for(int j=0;j<4;++j)
+////        cout<<mesh->pTetras[i].neighborsmark[j]<<" ";
+////        cout<<endl;
+//    }
     int ndSize, clSize;
     //BKGElem *pElem = NULL, *pLft = NULL, *pRgt = NULL;
 
@@ -139,7 +199,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
     if (!vecRefIntFHash || !vecInterFaces || !ndIFaces)
     {
         errCode = -1;                                                //申请内存空间并验证是否成功
-        goto FAIL;
+//        goto FAIL;
     }
 
     ndSize = nNodes;
@@ -168,17 +228,21 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
         for (i = 0; i <= 4; i++)                 //初始化neighbors值为-1  BKG_MESH_DIM == 3
             pTetras_t->neighbors[i] = -1;
     }
-
+ //   ofstream test_file;
+ //   test_file.open("test_file!");
     for (cellIdx = 0; cellIdx < clSize; cellIdx++)
     {
         if (cellIdx % 1000000 == 0 || cellIdx == clSize - 1)
             printf("%%%.2f.\n", 100.0*(cellIdx)/clSize);             //输出工作百分比（仅显示0%和99.99%）这个for内为主要工作循环
     if(cellIdx<nPrism){
-     //   cout<<"aaaaa"<<endl;
+
         PRISM  *pLft=nullptr, *pRgt=nullptr;
         pPrism_t = &pPrism[cellIdx];
         for (i = 0; i <= 4; i++) {
-            if(sizeof(pris[i])/sizeof(int)==4){
+      //      cout<<pris[i][0]<<" "<<pris[i][1]<<" "<<pris[i][2]<<" "<<pris[i][3]<<" "<<endl;
+
+            if(i==2||i==3||i==4){
+
             facNdIdx1 = pPrism_t->vertices[pris[i][0]];
             facNdIdx2 = pPrism_t->vertices[pris[i][1]];                //BKG_MESH_DIM == 3  new BKG_MESH_DIM 应该为5
             facNdIdx3 = pPrism_t->vertices[pris[i][2]];
@@ -206,7 +270,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                     if (!ndIFaces_Temp)
                     {
                         errCode = -1;
-                        goto FAIL;
+//                        goto FAIL;
                     }
                     ndIFaces = ndIFaces_Temp;
                 }
@@ -235,7 +299,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
 
                 if (nCommon >= 4)
                 {
-            //        cout<<"find it !!!!!!!!!"<<endl;
+               //     cout<<"find it !!!!!!!!!"<<endl;
                     break;
                 }
             }
@@ -249,7 +313,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                     if (!vecInterFaces_Temp)
                     {
                         errCode = -1;
-                        goto FAIL;
+//                        goto FAIL;
                     }
                     vecInterFaces = vecInterFaces_Temp;
                 }
@@ -287,17 +351,41 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                 pLft = &pPrism[lftCell];
                 pRgt = &pPrism[rgtCell];                             //
 
-             for(int k=0;k<6;++k){
-                   if(pLft->neighbors[k]==-1)
-                {
-                    pLft->neighbors[k] = rgtCell;
-                    pLft->neighborsmark[k]=double((facevec[0]+facevec[1]*2+facevec[2]*3+facevec[3]*4))/10;
-                    break;
-                }
-             }
+                double mark =double(facevec[0]*3+facevec[1]*5+facevec[2]*7+facevec[3]*11)/10;
+                    for(int k=2;k<5;++k){
+             //           cout<<mark<<endl;
+            //            cout<<pLft->neighborsmark[k]<<"    "<<mark<<endl;
+                          if(fabs(pLft->neighborsmark[k]-mark)<0.01)
+                       {
+                              if(pLft->neighbors[k]==-1){
+                           pLft->neighbors[k] = rgtCell;
+//                           pLft->neighborsmark[k]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
 
-                pRgt->neighbors[i] = lftCell;
-                pRgt->neighborsmark[i]=double((facevec[0]+facevec[1]*2+facevec[2]*3+facevec[3]*4))/10;
+                           break;
+                              }
+                       }
+                          if(k==5){
+                              cout<<"can't find  nPrism face !!"<<"   pid="<<lftCell<<"  fid="<<i<<endl;
+                          }
+                    }
+//                  cout<<mark<<endl;
+//                  cout<<"   pid="<<cellIdx<<endl;
+                    for(int k=2;k<5;++k){
+
+                          if(fabs(pRgt->neighborsmark[k]-mark)<0.01)
+                       {
+                              if(pRgt->neighbors[k]==-1)
+                            {  pRgt->neighbors[k] = lftCell;
+   //                           pRgt->neighborsmark[k]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
+                        //   cout<<pLft->neighborsmark[k]<<endl;
+                           break;
+                              }
+
+                       }
+
+                          if(k==5)
+                              cout<<"can't find nPrism face !!"<<"   pid="<<cellIdx<<"  fid="<<i<<endl;
+                    }
 
                                                             //在两个相邻的体的neighbors中互相储存对方。（下标为什么为i和k？）
                                               //i在此循环中代表该体的当前面，k则代表当前面的对点编号
@@ -335,7 +423,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                         if (!ndIFaces_Temp)
                         {
                             errCode = -1;
-                            goto FAIL;
+//                            goto FAIL;
                         }
                         ndIFaces = ndIFaces_Temp;
                     }
@@ -379,7 +467,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                         if (!vecInterFaces_Temp)
                         {
                             errCode = -1;
-                            goto FAIL;
+//                            goto FAIL;
                         }
                         vecInterFaces = vecInterFaces_Temp;
                     }
@@ -418,18 +506,45 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                     pLft = &pPrism[lftCell];
                     pRgt = &pPrism[rgtCell];                             //
 
-                 for(int k=0;k<6;++k){
+                    double mark =double(facevec[0]*3+facevec[1]*5+facevec[2]*7)/10;
+                        for(int k=0;k<2;++k){
+                       //     cout<<"k= "<<k<<endl;
+                        //    cout<<pLft->neighborsmark[k]<<endl;
+                         //    cout<<mark<<endl;
+                              if(fabs(pLft->neighborsmark[k]-mark)<0.01)
+                           {
 
-                       if(pLft->neighbors[k]==-1)
-                    {
-                        pLft->neighbors[k] = rgtCell;
-                        pLft->neighborsmark[k]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
-                        break;
-                    }
-                 }
+                                  if(pLft->neighbors[k]==-1){
+                               pLft->neighbors[k] = rgtCell;
 
-                    pRgt->neighbors[i] = lftCell;
-                    pRgt->neighborsmark[i]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
+    //                           pLft->neighborsmark[k]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
+
+                               break;
+                                  }
+                           }
+                              if(k==2){
+                                  cout<<"can't find nPrism face !!"<<"   pid="<<lftCell<<"  fid="<<i<<endl;
+                              }
+                        }
+    //                  cout<<mark<<endl;
+    //                  cout<<"   pid="<<cellIdx<<endl;
+                        for(int k=0;k<2;++k){
+                           // cout<<mark<<endl;
+                              if(fabs(pRgt->neighborsmark[k]-mark)<0.01)
+                           {
+
+//                                  cout<<"!!!!"<<endl;
+                                  if(pRgt->neighbors[k]==-1){
+                                  pRgt->neighbors[k] = lftCell;
+       //                           pRgt->neighborsmark[k]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
+                            //   cout<<pLft->neighborsmark[k]<<endl;
+                               break;
+                                  }
+                           }
+
+                              if(k==2)
+                                  cout<<"can't find nPrism face !!"<<"   pid="<<cellIdx<<"  fid="<<i<<endl;
+                        }
 
                                                                 //在两个相邻的体的neighbors中互相储存对方。（下标为什么为i和k？）
                                                   //i在此循环中代表该体的当前面，k则代表当前面的对点编号
@@ -444,6 +559,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
     }
 
     }
+
     else if(cellIdx<nPrism+nHexes){
       //  cout<<"aaaaa"<<endl;
          pHexes_t = &pHexes[cellIdx];
@@ -480,7 +596,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                             if (!ndIFaces_Temp)
                             {
                                 errCode = -1;
-                                goto FAIL;
+//                                goto FAIL;
                             }
                             ndIFaces = ndIFaces_Temp;
                         }
@@ -527,7 +643,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                             if (!vecInterFaces_Temp)
                             {
                                 errCode = -1;
-                                goto FAIL;
+//                                goto FAIL;
                             }
                             vecInterFaces = vecInterFaces_Temp;
                         }
@@ -589,7 +705,9 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
             }
 
     else if(cellIdx<nPrism+nHexes+nTetras){
-       pTetras_t = &pTetras[cellIdx];
+  //       test_file<<"cellIdx "<<cellIdx<<"  :::";
+       pTetras_t = &pTetras[pnum];
+       pnum++;
        TETRAS  *pLft=nullptr, *pRgt=nullptr;
        for (i = 0; i <= 3; i++) {
                    facNdIdx1 = pTetras_t->vertices[tet[i][0]];
@@ -622,7 +740,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                            if (!ndIFaces_Temp)
                            {
                                errCode = -1;
-                               goto FAIL;
+//                               goto FAIL;
                            }
                            ndIFaces = ndIFaces_Temp;
                        }
@@ -669,7 +787,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                            if (!vecInterFaces_Temp)
                            {
                                errCode = -1;
-                               goto FAIL;
+//                               goto FAIL;
                            }
                            vecInterFaces = vecInterFaces_Temp;
                        }
@@ -684,11 +802,13 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                        faceAd.hashNxt = vecRefIntFHash[minFacNdIdx];     //上一个faceAdIdx被放入此处，第一个faceAD的hasNxt为-1
                        vecRefIntFHash[minFacNdIdx] = faceAdIdx;          //faceAdIdx被放入此处，给下一个faceAd作为next。
                        vecInterFaces[nFaceSize++] = faceAd;              //faceAd顺序放入容器
+
+
                    //    cout<<nFaceSize<<endl;
                    }
 
 
-                                                                                  //找到重合面由break退出
+                                                                        //找到重合面由break退出
                    else {
                        if(!(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
                             vecInterFaces[ndIFaces[j]].rgtCell < 0))
@@ -703,22 +823,71 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
 
                        lftCell = vecInterFaces[ndIFaces[j]].lftCell;
                        rgtCell = vecInterFaces[ndIFaces[j]].rgtCell;
-                       pLft = &pTetras[lftCell];
-                       pRgt = &pTetras[rgtCell];                             //
+      //                 cout<<"lftCell"<<lftCell<<"rgtCell"<<rgtCell<<endl;
+//                       if(lftCell<nPrism){
+//                       pLft = &pPrism[lftCell];
+//                       pRgt = &pTetras[rgtCell];
+//                       }
+//                       else
+//                       {
+//                           pLft = &pTetras[lftCell];
+//                           pRgt = &pTetras[rgtCell];
+//                       }
+         //              cout<<pLft->vertices[1]<<" "<<pLft->vertices[2]<<" "<<pLft->vertices[3]<<" "<<pLft->vertices[0]<<" "<<endl;
+     //                  cout<<pRgt->vertices[1]<<" "<<pRgt->vertices[2]<<" "<<pRgt->vertices[3]<<" "<<pRgt->vertices[0]<<" "<<endl;
+                double mark =double(facevec[0]*3+facevec[1]*5+facevec[2]*7)/10;
 
-                    for(int k=0;k<4;++k){
-         //               cout<<"start"<<endl;
-                          if(pLft->neighbors[k]==-1)
+                if(lftCell<nPrism){
+                 PRISM  * pLft = &pPrism[lftCell];
+                    for(int k=0;k<2;++k){
+
+                          if(fabs(pLft->neighborsmark[k]-mark)<0.1)
                        {
+//                              test_file<<k<<"  "<<rgtCell<<"  ";
                            pLft->neighbors[k] = rgtCell;
-                           pLft->neighborsmark[k]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
-                        //   cout<<pLft->neighborsmark[k]<<endl;
+//                           pLft->neighborsmark[k]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
+
                            break;
                        }
+                          if(k==2){
+                              cout<<"can't find Prism face !!"<<"   pid="<<pLft->index<<"  fid="<<i<<endl;
+                          }
                     }
+                   }
+                else{
+                    pLft = &pTetras[lftCell-nPrism-nHexes];
+                    for(int k=0;k<4;++k){
+                          if(fabs(pLft->neighborsmark[k]-mark)<0.1)
+                       {
+//                              test_file<<k<<"  "<<rgtCell<<"  ";
+                           pLft->neighbors[k] = rgtCell;
+                           break;
+                       }
+                          if(k==4){
+                              cout<<"can't find Tetras face !!"<<"   pid="<<pLft->index<<"  fid="<<i<<endl;
+                          }
+                    }
+                }
 
-                       pRgt->neighbors[i] = lftCell;
-                       pRgt->neighborsmark[i]=double((facevec[0]+facevec[1]*2+facevec[2]*3))/10;
+                pRgt = &pTetras[rgtCell-nPrism-nHexes];
+                    for(int k=0;k<4;++k){
+  //                      if(rgtCell-nPrism-nHexes==79939)
+   //                         cout<<pRgt->neighborsmark[k]<<"   mark"<<mark<<"  cha="<<fabs(pRgt->neighborsmark[k]-mark)<<endl;
+                        if(fabs(pRgt->neighborsmark[k]-mark)<0.1)
+                       {
+//                              if(rgtCell-nPrism-nHexes==79939)
+//                                  cout<<pRgt->neighborsmark[k]<<"   mark"<<mark<<endl;
+  //                               test_file<<k<<"  "<<lftCell<<"  ";
+
+                              pRgt->neighbors[k] = lftCell;
+                           break;
+                       }
+
+                          if(k==4)
+
+                             cout<<"can't find  Tetras face !!"<<"   pid="<<cellIdx<<"  fid="<<i<<endl;
+
+                    }
 
                                                                    //在两个相邻的体的neighbors中互相储存对方。（下标为什么为i和k？）
                                                      //i在此循环中代表该体的当前面，k则代表当前面的对点编号
@@ -726,11 +895,11 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
                                                                            //此时对于rgtCell来讲，自然是能保证neighbors[0]不被覆盖
                                                                            //lftCell如何保证？
                }
+//       test_file<<endl;
     }
     }
-
     goto END;
-FAIL:
+//FAIL:
 END:
     if (vecRefIntFHash)
         free(vecRefIntFHash);
@@ -738,6 +907,26 @@ END:
         free(vecInterFaces);
     if (ndIFaces)
         free(ndIFaces);
+
+    ofstream  a;
+    a.open("out.test");
+        for(int i=0;i<mesh->NumTetras;++i){
+       for(int j=0;j<4;++j){
+           a<<mesh->pTetras[i].neighbors[j]<<" ";
+       }
+       a<<endl;
+   }
+        a.close();
+        ofstream  b;
+        b.open("out_prsm.test");
+        b<<"start"<<endl;
+            for(int i=0;i<mesh->NumPrsm;++i){
+           for(int j=0;j<5;++j){
+               b<<mesh->pPrisms[i].neighbors[j]<<" ";
+           }
+           b<<endl;
+       }
+            b.close();
 
     return errCode; /* S_OK */
 }
@@ -862,7 +1051,7 @@ int setupCellNeig(int nNodes, int nElems, TETRAS *pBKGElems)
 
                 if(!(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
                      vecInterFaces[ndIFaces[j]].rgtCell < 0))
-                    cout<<cellIdx<<endl;
+              //      cout<<cellIdx<<endl;
 
                 assert(vecInterFaces[ndIFaces[j]].lftCell >= 0 &&
                         vecInterFaces[ndIFaces[j]].rgtCell < 0);
@@ -1100,12 +1289,23 @@ END:
 int findiCellFast_temp(HYBRID_MESH &file)
 {
     static int tet[4][3] = {{1, 2, 3}, {0, 3, 2}, {0, 1, 3}, {0, 2, 1}};
+    int* pris[5];
+    int pris1[3] = {0, 1, 2};
+    int pris2[3] = {3, 4, 5};
+    int pris3[4] = {0, 1, 4, 3};
+    int pris4[4] = {1, 2, 5, 4};
+    int pris5[4] = {0, 2, 5, 3};
+    pris[0] = pris1;
+    pris[1] = pris2;
+    pris[2] = pris3;
+    pris[3] = pris4;
+    pris[4] = pris5;
     int neigbor=-2;
     int count=0;
     set<int>cellIDs;
 
     map<string,int> trimap;
-
+    set<string>  sum;
     int v[3];
     for(int i=0;i<file.NumTris;i++)
     {
@@ -1117,20 +1317,18 @@ int findiCellFast_temp(HYBRID_MESH &file)
         trimap[temp]=i;
 
     }
-
-   int neigbormark=-1;
+   double neigbormark=-1;
     map<string,int>::iterator mapIter;
-    for(int i=0;i<file.NumTetras;i++)
+    for(int i=0;i<file.NumPrsm;i++)
     {
-        neigbormark=-1;
-        for(int j=0;j<4;j++)
+        for(int j=0;j<5;j++)
         {
-            neigbor=file.pTetras[i].neighbors[j];
-            neigbormark=file.pTetras[i].neighborsmark[j];
+            neigbor=file.pPrisms[i].neighbors[j];
+            neigbormark=file.pPrisms[i].neighborsmark[j];
 
             if(neigbor==-1)
             {
-               // count++;
+                count++;
 
                 cellIDs.insert(i);
 //                for(int k=0;k<4;k++)
@@ -1143,24 +1341,38 @@ int findiCellFast_temp(HYBRID_MESH &file)
 //                }
                 int facNdIdx1,facNdIdx2,facNdIdx3;
                 int vec[3];
-                   for (int k = 0; k <= 3;k++) {
-                facNdIdx1 = file.pTetras[i].vertices[tet[k][0]];
-                facNdIdx2 = file.pTetras[i].vertices[tet[k][1]];
-                facNdIdx3 = file.pTetras[i].vertices[tet[k][2]];
-
+                int k=0;
+                   for ( k = 0; k <= 1;k++) {
+                facNdIdx1 = file.pPrisms[i].vertices[pris[k][0]];
+                facNdIdx2 = file.pPrisms[i].vertices[pris[k][1]];
+                facNdIdx3 = file.pPrisms[i].vertices[pris[k][2]];
+  //              sum_2.insert(file.pTetras[i].neighborsmark[k]);
                 vec[0]=facNdIdx1;
                 vec[1]=facNdIdx2;
                 vec[2]=facNdIdx3;
 
                 sort(vec,vec+3);
-                if(double(vec[0]+vec[1]*2+vec[2]*3)/10==neigbormark)
+              //  string temp=IntToString(vec[0])+"_"+IntToString(vec[1])+"_"+IntToString(vec[2]);
+             //   sum.insert(temp);
+
+                if(fabs(double(vec[0]*3+vec[1]*5+vec[2]*7)/10-neigbormark)<0.1)
+                {
+                //     cout<<"find face"<<endl;
                     break;
+
+                }
+                else
+                {
+               //        cout<<"face  "<<double(vec[0]*3+vec[1]*5+vec[2]*7)/10<<"neigormark "<<neigbormark<<endl;
+                }
                    }
-                   if(i==4)
-                       cout<<"error at find face"<<endl;
+                   if(k==2)
+                      { cout<<i<<"error at find face"<<endl;
+                   }
 
                 string temp=IntToString(vec[0])+"_"+IntToString(vec[1])+"_"+IntToString(vec[2]);
                 mapIter=trimap.find(temp);
+                sum.insert(temp);
                 if(mapIter==trimap.end())
                 {
                     cout<<"Error in finding iCell!"<<endl;
@@ -1169,14 +1381,82 @@ int findiCellFast_temp(HYBRID_MESH &file)
                 {
 
                     int triID=mapIter->second;
-                    cout<<triID<<endl;
+         //           cout<<triID<<endl;
                     file.pTris[triID].iCell=i;
                 }
             }
         }
     }
+    for(int i=0;i<file.NumTetras;i++)
+    {
+        for(int j=0;j<4;j++)
+        {
+            neigbor=file.pTetras[i].neighbors[j];
+            neigbormark=file.pTetras[i].neighborsmark[j];
 
+            if(neigbor==-1)
+            {
+                count++;
+
+                cellIDs.insert(i);
+//                for(int k=0;k<4;k++)
+//                {
+//                    if(k!=j)
+//                    {
+//                        v[count]=file.pTetras[i].vertices[k];
+//                        count++;
+//                    }
+//                }
+                int facNdIdx1,facNdIdx2,facNdIdx3;
+                int vec[3];
+                int k=0;
+                   for ( k = 0; k <= 3;k++) {
+                facNdIdx1 = file.pTetras[i].vertices[tet[k][0]];
+                facNdIdx2 = file.pTetras[i].vertices[tet[k][1]];
+                facNdIdx3 = file.pTetras[i].vertices[tet[k][2]];
+  //              sum_2.insert(file.pTetras[i].neighborsmark[k]);
+                vec[0]=facNdIdx1;
+                vec[1]=facNdIdx2;
+                vec[2]=facNdIdx3;
+
+                sort(vec,vec+3);
+              //  string temp=IntToString(vec[0])+"_"+IntToString(vec[1])+"_"+IntToString(vec[2]);
+             //   sum.insert(temp);
+
+                if(fabs(double(vec[0]*3+vec[1]*5+vec[2]*7)/10-neigbormark)<0.1)
+                {
+       //              cout<<"find face"<<endl;
+                    break;
+
+                }
+                else
+                {
+               //        cout<<"face  "<<double(vec[0]*3+vec[1]*5+vec[2]*7)/10<<"neigormark "<<neigbormark<<endl;
+                }
+                   }
+                   if(k==4)
+                       cout<<"error at find face"<<endl;
+
+                string temp=IntToString(vec[0])+"_"+IntToString(vec[1])+"_"+IntToString(vec[2]);
+                mapIter=trimap.find(temp);
+                sum.insert(temp);
+                if(mapIter==trimap.end())
+                {
+                    cout<<"Error in finding iCell!"<<endl;
+                }
+                 else
+                {
+
+                    int triID=mapIter->second;
+            //        cout<<triID<<endl;
+                    file.pTris[triID].iCell=i;
+                }
+            }
+        }
+    }
+//    cout<<"count ====="<<count<<endl;
     cout<<"Finding iCell finished!"<<endl;
+ //   cout<<"sum===="<<sum.size()<<endl;
     return 1;
 }
 
@@ -1241,7 +1521,7 @@ int findiCellFast(HYBRID_MESH &file)
                 {
                     int triID=mapIter->second;
                     file.pTris[triID].iCell=i;
-                    cout<<i<<endl;
+             //       cout<<i<<endl;
                 }
                 assert(count==3);
             }

@@ -9,7 +9,7 @@
 
 #define MAX_FILE_LINE   1024
 
-#define BKG_MESH_DIM    3
+#define BKG_MESH_DIM    4
 
 #define MAX_VALUE(x, y) (x) > (y) ? (x) : (y)
 using namespace std;

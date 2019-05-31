@@ -12,6 +12,7 @@
 #include "mpi.h"
 #include "algorithm"
 #include <unordered_map>
+#include <fstream>
 using namespace std;
 
 
@@ -101,6 +102,485 @@ int sortPointsID(HYBRID_MESH&mesh)
     //
     return 1;
 }
+int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, int stride, int offset, int type)
+{
+
+
+    TETRAS *ptetras=tetrasfile.pTetras;
+
+    PRISM *pprisms=tetrasfile.pPrisms;
+
+    idx_t NumVertices=tetrasfile.NumNodes;
+
+    idx_t NumElement=tetrasfile.numOfCells();
+
+    idx_t NumPrsm=tetrasfile.NumPrsm;
+
+    idx_t NumHexes=tetrasfile.NumHexes;
+
+    idx_t NumTetras=tetrasfile.NumTetras;
+
+    idx_t ncommon=3;
+
+    idx_t NumParts=nparts;
+
+    idx_t *eptr=new idx_t[NumElement+1];    //存的eind下标,so  need to index to get range
+
+    idx_t *eind=new idx_t[NumPrsm*6+NumTetras*4+NumHexes*8];
+
+    idx_t *vwgt=new idx_t[NumElement];
+    for(int i=0;i<NumPrsm+1;i++)
+    {
+        eptr[i]=i*6;
+    }
+    for(int i=0;i<NumPrsm+NumTetras+1;i++)
+    {
+        eptr[i]=i*4;
+    }
+
+    for(int i=0;i<NumPrsm;i++)
+    {
+        for(int j=0;j<6;j++)
+        {
+            eind[i*6+j]=pprisms[i].vertices[j];
+        }
+    }
+    for(int i=NumPrsm;i<NumPrsm+NumTetras;i++)
+    {
+        for(int j=0;j<4;j++)
+        {
+            eind[i*4+j]=ptetras[i].vertices[j];
+        }
+    }
+    for(int i=0;i<NumPrsm;i++)
+    {
+        vwgt[i]=6;
+    }
+
+    for(int i=NumPrsm;i<NumPrsm+NumTetras;i++)
+    {
+        vwgt[i]=4;
+    }
+
+    idx_t *epart=new idx_t[NumElement];
+
+    idx_t *npart=new idx_t[NumVertices];
+
+    idx_t objvalue=0;
+
+    idx_t options[40];
+
+    METIS_SetDefaultOptions(options);
+
+    options[METIS_OPTION_NUMBERING]=0;
+
+    if(nparts>1)
+    {
+        cout<<"test"<<endl;
+        int results=METIS_PartMeshDual(&NumElement,&NumVertices,eptr,eind,vwgt,nullptr,&ncommon,&NumParts,nullptr,
+                                       nullptr,&objvalue ,epart,npart);
+        cout<<"results"<<results<<endl;
+    }
+    else
+    {
+        for(int i=0;i<NumElement;i++)
+        {
+            epart[i]=0;
+        }
+        for(int i=0;i<NumVertices;i++)
+        {
+            npart[i]=0;
+        }
+    }
+    for(int i=0;i<NumPrsm;i++)
+    {
+        tetrasfile.pPrisms[i].partMarker=epart[i];
+        tetrasfile.pPrisms[i].index=i;//reset the index
+    }
+
+    for(int i=0;i<NumTetras;i++)
+    {
+      //  tetrasfile.pTetras[i].partMarker=epart[i]*stride+offset;//shift partMarker
+        tetrasfile.pTetras[i].partMarker=epart[NumPrsm+i];
+        tetrasfile.pTetras[i].index=NumPrsm+i;//reset the index
+    }
+
+
+    for(int i=0;i<NumVertices;i++)
+    {
+        tetrasfile.nodes[i].partMarker=npart[i];
+    }
+
+    if(eptr!=nullptr)
+        delete []eptr;
+    eptr=nullptr;
+    if(eind!=nullptr)
+        delete []eind;
+    eind=nullptr;
+
+
+    int tetrasID=-1;
+    for(int i=0;i<tetrasfile.NumTris;i++)
+    {
+        tetrasID=tetrasfile.pTris[i].iCell;
+        if(tetrasID<NumPrsm)
+        tetrasfile.pTris[i].partMarker=tetrasfile.pPrisms[tetrasID].partMarker;
+        else if(tetrasID<NumPrsm+NumTetras)
+        tetrasfile.pTris[i].partMarker=tetrasfile.pTetras[tetrasID-NumPrsm].partMarker;
+    }
+
+
+
+//set the origin partMarker
+
+    //insert part information to node
+    for(int i=0;i<tetrasfile.NumPrsm;i++)
+    {
+        int pointID=-1;
+
+
+        int procID=tetrasfile.pPrisms[i].partMarker;
+
+        for(int j=0;j<6;j++)
+        {
+            pointID=tetrasfile.pPrisms[i].vertices[j];
+            tetrasfile.nodes[pointID].procs.insert(procID);
+        }
+     //   pointID=tetrasfile.pTetras[i].vertices[0];
+    }
+
+    //insert part information to node
+    for(int i=0;i<tetrasfile.NumTetras;i++)
+    {
+        int pointID=-1;
+
+
+        int procID=tetrasfile.pTetras[i].partMarker;
+
+        for(int j=0;j<4;j++)
+        {
+            pointID=tetrasfile.pTetras[i].vertices[j];
+            tetrasfile.nodes[pointID].procs.insert(procID);
+        }
+     //   pointID=tetrasfile.pTetras[i].vertices[0];
+    }
+
+    //prepare the data to deliver
+
+
+
+    //set<>
+    set<int> *elementPart=new set<int>[nparts];
+
+    set<int> *tempTerasPart=new set<int>[nparts];
+
+    set<int> *tempPrismPart=new set<int>[nparts];
+
+    set<int> *facetPart=new set<int>[nparts];
+
+    int partID=-1;
+    for(int i=0;i<NumElement;i++)
+    {
+        //   tetrasfile.elements[i].partMarker=epart[i];
+        partID=epart[i];
+        elementPart[partID].insert(i);
+        if(vwgt[i]==6){
+            tempPrismPart[partID].insert(i);
+        }
+        else if(vwgt[i]==4){
+
+            tempTerasPart[partID].insert(i);
+        }
+
+    }
+
+    for(int i=0;i<tetrasfile.NumTris;i++)
+    {
+        partID=tetrasfile.pTris[i].partMarker;
+        facetPart[partID].insert(i);
+    }
+
+
+
+    int tempSize=-1;
+    int tempID=-1;
+    int tempMID=-1;
+
+    //set<int>pointID;
+    map<int,int>global_to_local;
+
+    map<int,int>local_to_global;
+
+    set<int>::iterator setIter;
+    map<int,int>::iterator mapIter;
+    int count=0;
+    for(int i=0;i<nparts;i++)
+    {
+        tempSize=tempTerasPart[i].size();
+        tetrasPart[i].NumTetras=tempSize;
+        tetrasPart[i].pTetras=new TETRAS[tempSize];
+        tempSize=tempPrismPart[i].size();
+        tetrasPart[i].NumPrsm=tempSize;
+        tetrasPart[i].pPrisms=new PRISM[tempSize];
+
+        count=0;
+        //insert pointID
+        global_to_local.clear();
+        local_to_global.clear();
+        for(setIter=tempPrismPart[i].begin();setIter!=tempPrismPart[i].end();setIter++)
+        {
+            tempID=*setIter;
+
+            for(int j=0;j<6;j++)
+            {
+                tempMID=tetrasfile.pPrisms[tempID].vertices[j];
+                mapIter=global_to_local.find(tempMID);
+                if(mapIter!=global_to_local.end())
+                {
+                    //find it, do nothing
+                }
+                else
+                {
+                    //not found
+                    global_to_local[tempMID]=count;
+                    local_to_global[count]=tempMID;
+                    count++;
+                }
+            }
+        }
+//        ofstream a;
+//        a.open("fffff.txt");
+//        for(int i=0;i<tetrasfile.NumTetras;++i){
+//            for(int j=0;j<4;++j)
+//            a<<tetrasfile.pTetras[i].vertices[j]<<" ";
+//            a<<endl;
+//        }
+//        a.close();
+        for(setIter=tempTerasPart[i].begin();setIter!=tempTerasPart[i].end();setIter++)
+        {
+            tempID=*setIter-tempPrismPart->size();
+
+            for(int j=0;j<4;j++)
+            {
+
+                tempMID=tetrasfile.pTetras[tempID].vertices[j];
+                mapIter=global_to_local.find(tempMID);
+                if(mapIter!=global_to_local.end())
+                {
+                    //find it, do nothing
+                }
+                else
+                {
+                    //not found
+                    global_to_local[tempMID]=count;
+                    local_to_global[count]=tempMID;
+                //   cout<<tempMID<<endl;
+                    count++;
+                }
+            }
+        }
+        tetrasPart[i].NumNodes=count;
+        tetrasPart[i].nodes=new Node[tetrasPart[i].NumNodes];
+        for(int j=0;j<tetrasPart[i].NumNodes;j++)
+        {
+            mapIter=local_to_global.find(j);
+            tempMID=mapIter->second;
+        //    cout<<tempMID<<endl;
+            tetrasPart[i].nodes[j]=tetrasfile.nodes[tempMID];
+            tetrasPart[i].nodes[j].localID=j;
+        }
+        count=0;
+        cout<<"test"<<endl;
+        //insert elementID
+        for(setIter=tempPrismPart[i].begin();setIter!=tempPrismPart[i].end();setIter++)
+        {
+            tempID=*setIter;
+            tetrasPart[i].pPrisms[count]=tetrasfile.pPrisms[tempID];
+
+            tetrasPart[i].pPrisms[count].localID=count;
+
+            //tetrasPart[i].pTetras[count].index=
+
+            int tempPartMarker=tetrasPart[i].pPrisms[count].partMarker;
+
+            tetrasPart[i].pPrisms[count].partMarker=tempPartMarker*stride+offset;//////////////shift the partMarker
+
+
+            for(int j=0;j<6;j++)
+            {
+                tempMID=tetrasPart[i].pPrisms[count].vertices[j];
+                tetrasPart[i].pPrisms[count].vertices[j]=global_to_local[tempMID];
+            }
+            count++;
+
+        }
+
+        for(setIter=tempTerasPart[i].begin();setIter!=tempTerasPart[i].end();setIter++)
+        {
+            tempID=*setIter;
+            tetrasPart[i].pTetras[count]=tetrasfile.pTetras[tempID];
+
+            tetrasPart[i].pTetras[count].localID=count;
+
+            //tetrasPart[i].pTetras[count].index=
+
+            int tempPartMarker=tetrasPart[i].pTetras[count].partMarker;
+
+            tetrasPart[i].pTetras[count].partMarker=tempPartMarker*stride+offset;//////////////shift the partMarker
+
+
+            for(int j=0;j<4;j++)
+            {
+                tempMID=tetrasPart[i].pTetras[count].vertices[j];
+                tetrasPart[i].pTetras[count].vertices[j]=global_to_local[tempMID];
+            }
+            count++;
+
+        }
+//        cout<<"tempSize: "<<tempSize<<" count:"<<count<<endl;
+        assert(count==tempSize);
+        //insert facets
+        tempSize=facetPart[i].size();
+        tetrasPart[i].NumTris=tempSize;
+        tetrasPart[i].pTris=new TRI[tetrasPart[i].NumTris];
+        count=0;
+        for(setIter=facetPart[i].begin();setIter!=facetPart[i].end();setIter++)
+        {
+            tempID=*setIter;
+            tetrasPart[i].pTris[count]=tetrasfile.pTris[tempID];
+      //      tetrasPart[i].pTris[count].index=count;///////////////////////////////annotated by zhvliu
+
+            int tempPartMarker=tetrasPart[i].pTris[count].partMarker;
+
+            tetrasPart[i].pTris[count].partMarker=tempPartMarker*stride+offset;//////////////shift the partMarker
+
+            for(int j=0;j<3;j++)
+            {
+                tempMID=tetrasPart[i].pTris[count].vertices[j];
+                tetrasPart[i].pTris[count].vertices[j]=global_to_local[tempMID];
+            }
+            count++;
+        }
+    }
+
+    if(elementPart!=nullptr)
+    {
+        delete []elementPart;
+    }
+    if(facetPart!=nullptr)
+    {
+        delete []facetPart;
+    }
+
+
+    for(int i=0;i<NumElement;i++)
+    {
+        tetrasfile.pTetras[i].partMarker=epart[i]*stride+offset;//shift partMarker
+
+      //  tetrasfile.pTetras[i].localID=i;
+      //  tetrasfile.pTetras[i].partMarker=epart[i];
+    }
+
+/*
+    char testName[256];
+    sprintf(testName,"%s%d%s","second",offset,".vtk");
+    writeVTKFile(testName,tetrasfile);
+
+
+    sprintf(testName,"%s%d%s","secondTriangle",offset,".vtk");
+    writeTriangleVTKFile(testName,tetrasfile);
+
+*/
+    if(epart!=nullptr)
+        delete []epart;
+    epart=nullptr;
+    if(npart!=nullptr)
+        delete []npart;
+    npart=nullptr;
+
+    map<string,int64_t> tri_globalID;
+    for(int i=0;i<nparts;i++)
+    {
+        constructFacets(tetrasPart[i],tetrasfile,tri_globalID);
+        char name[256];
+        sprintf(name,"%s%d%s","cubeInter",i,".vtk");
+       // writeTriangleVTKFile(name,tetrasPart[i]);
+    }
+
+
+    if(type==1)//which means the second partition
+    {
+        int comm_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+       // map<string,int>tri_globalID;
+
+        cout<<"Entering type==1"<<endl;
+
+        int originFacets=tetrasfile.NumTris;
+        int sumFacets=0;
+        for(int i=0;i<nparts;i++)
+        {
+            sumFacets+=tetrasPart[i].NumTris;
+        }
+        cout<<"originFacets: "<<originFacets<<" sumFacets: "<<sumFacets<<endl;
+        int nNewLocalFacets=(sumFacets-originFacets)/2;
+        cout<<"nNewLocalFacets: "<<nNewLocalFacets<<" tri_gloablID.size= "<<tri_globalID.size()<<endl;
+        assert(nNewLocalFacets==tri_globalID.size());
+
+
+
+        int64_t offset = nNewLocalFacets;
+        int64_t nNewGlobalFacets = nNewLocalFacets;
+        if (comm_size > 1)
+        {
+            MPI_Scan(&(static_cast<const int64_t&>(nNewLocalFacets)), &offset, 1,
+                     MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(&nNewLocalFacets, &nNewGlobalFacets, 1,
+                          MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);
+        }
+        offset -= nNewLocalFacets;
+        offset += tetrasfile.NumUniqueSurfFacets + tetrasfile.NumUniqueInterfFacets;
+        for (int i = 0; i < nparts; ++i)
+        {
+            tetrasPart[i].NumUniqueSurfFacets = tetrasfile.NumUniqueSurfFacets;
+            tetrasPart[i].NumUniqueInterfFacets = tetrasfile.NumUniqueInterfFacets + nNewGlobalFacets;
+        }
+
+        map<string,int64_t>::iterator mapIter;
+        count=0;
+        for(mapIter=tri_globalID.begin();mapIter!=tri_globalID.end();mapIter++)
+        {
+            mapIter->second=count+offset;
+            count++;
+        }
+
+
+        for(int i=0;i<nparts;i++)
+        {
+            updateTriIndex(tetrasPart[i],tri_globalID);
+     //       findiCellFast(tetrasPart[i]);///////find icell
+        }
+
+
+
+    }
+
+    /*
+    const int nUniqueFacets = refinedMesh.numOfFacets() - nDuplicatedFacets;
+    int offset = nUniqueFacets;
+    MPI_Scan(&nUniqueFacets, &offset, 1, MPI_INT, MPI_SUM, comm);
+    MPI_Allreduce(const_cast<int*>(&nUniqueFacets), &refinedMesh.NumUniqueFacets,
+                  1, MPI_INT, MPI_SUM, comm);
+
+    if (rank == 0)
+        printf("##: nTotalUniqueFacets = %d\n", refinedMesh.NumUniqueFacets);
+
+    offset -= nUniqueFacets;
+
+    */
+    return 1;
+}
+
 int partition(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, int stride, int offset, int type)
 {
 
@@ -335,8 +815,6 @@ int partition(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, int s
         }
     }
 
-
-
     if(elementPart!=nullptr)
     {
         delete []elementPart;
@@ -380,6 +858,7 @@ int partition(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, int s
         sprintf(name,"%s%d%s","cubeInter",i,".vtk");
        // writeTriangleVTKFile(name,tetrasPart[i]);
     }
+
 
     if(type==1)//which means the second partition
     {
@@ -1201,6 +1680,186 @@ int sixNodesPattern(HYBRID_MESH &oldmesh, HYBRID_MESH &newmesh, map<string, newN
 
     return 1;
 
+}
+
+int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,int64_t>&tri_globalID)
+{
+
+    int originNum=mesh.NumTris;
+    for(int i=0;i<mesh.NumTetras;i++)
+    {
+        for(int j=0;j<4;j++)
+        {
+            mesh.pTetras[i].neighbors[j]=-1;
+        }
+    }
+    cout<<"Tetras Number is: "<<mesh.NumTetras<<endl;
+
+    setupCellNeig(mesh.NumNodes,mesh.NumTetras,mesh.pTetras);
+
+    map<string,bool>triMap;
+
+    int vertices[3];
+    for(int i=0;i<mesh.NumTris;i++)
+    {
+        vertices[0]=mesh.pTris[i].vertices[0];
+        vertices[1]=mesh.pTris[i].vertices[1];
+        vertices[2]=mesh.pTris[i].vertices[2];
+        sort(vertices,vertices+3);
+        string temp=IntToString(vertices[0])+"_";
+        temp+=IntToString(vertices[1]);
+        temp+="_";
+        temp+=IntToString(vertices[2]);
+        triMap[temp]=true;
+    }
+
+
+
+    int triVID[4][3]={
+        1,3,2 ,
+        0,2,3,
+        0,3,1,
+        0,1,2
+    };
+
+
+    vector<TRI> interFacets;
+    int count=0;
+    int Numtri=0;
+    for(int i=0;i<mesh.NumTetras;i++)
+    {
+        int forth=-1;
+        for(int j=0;j<4;j++)
+        {
+            if(mesh.pTetras[i].neighbors[j]==-1)
+            {
+
+                Numtri++;
+                forth=j;
+                count=0;
+                for(int k=0;k<3;k++)
+                {
+                    vertices[k]=mesh.pTetras[i].vertices[triVID[j][k]];
+                }
+
+                /*
+                for(int k=0;k<4;k++)
+                {
+                    if(k!=forth)
+                    {
+                        vertices[count]=mesh.pTetras[i].vertices[k];
+                        count++;
+
+                    }
+                }*/
+                TRI triangle;
+                constructOneTriangle(vertices,triangle);
+                triangle.iCell=i;
+                int globalID=mesh.pTetras[i].index;///////////////////
+               // cout<<globalID<<endl;
+                if(globalID<0||globalID>=globalMesh.NumTetras)
+                {
+                    cout<<"Error in finding the gloabl index!"<<endl;
+                }
+                globalID=globalMesh.pTetras[globalID].neighbors[forth];
+       //        cout<<mesh.pTetras[i].neighbors[forth]<<endl;
+                if(globalID==-1)
+                {
+                    triangle.iOppoProc=-1;
+                //      cout<<triangle.iOppoProc<<endl;
+
+                }
+                else
+                {
+                    triangle.iOppoProc=globalMesh.pTetras[globalID].partMarker;
+                    //cout<<"forth:  "<<temp<<endl;
+                   // cout<<triangle.iOppoProc<<endl;
+
+                }
+                interFacets.push_back(triangle);
+            }
+            else
+            {
+                //nothing
+            }
+        }
+    }
+
+   // cout<<"No error ..........................."<<endl;
+
+    TRI * facets= new TRI[mesh.NumTris];
+
+    for(int i=0;i<mesh.NumTris;i++)
+    {
+        facets[i]=mesh.pTris[i];
+    }
+    count=mesh.NumTris;
+
+    mesh.NumTris=interFacets.size();
+
+    if(mesh.pTris!=nullptr)
+    {
+        delete []mesh.pTris;
+        mesh.pTris=nullptr;
+    }
+    mesh.pTris=new TRI[mesh.NumTris];
+    for(int i=0;i<count;i++)
+    {
+        mesh.pTris[i]=facets[i];
+    }
+    if(facets!=nullptr)
+    {
+        delete []facets;
+        facets=nullptr;
+    }
+
+    //   mesh.pTris=facets;
+    //facets=nullptr;
+
+    //  count=;
+    for(int i=0;i<interFacets.size();i++)
+    {
+        vertices[0]=interFacets[i].vertices[0];
+        vertices[1]=interFacets[i].vertices[1];
+        vertices[2]=interFacets[i].vertices[2];
+        sort(vertices,vertices+3);
+        string temp=IntToString(vertices[0])+"_";
+        temp+=IntToString(vertices[1]);
+        temp+="_";
+        temp+=IntToString(vertices[2]);
+        if(triMap.find(temp)!=triMap.end())
+        {
+            //case : surface facet or interface created in the last partition
+
+
+        }
+        else
+        {
+            //case : new interface
+                            //cout<<"test"<<endl;
+            int globalVertices[3];
+            globalVertices[0]=mesh.nodes[vertices[0]].index;
+            globalVertices[1]=mesh.nodes[vertices[1]].index;
+            globalVertices[2]=mesh.nodes[vertices[2]].index;
+            sort(globalVertices,globalVertices+3);
+            string gTemp=IntToString(globalVertices[0])+"_"+IntToString(globalVertices[1])+"_"+IntToString(globalVertices[2]);
+
+            tri_globalID[gTemp]=-1;//temp value == -1////need gloabl index;
+
+            mesh.pTris[count]=interFacets[i];
+            count++;
+        }
+    }
+
+    assert(count==mesh.NumTris);
+
+    cout<<"Counter of the facets is: "<<Numtri<<endl;
+    cout<<"Surface triangle Number is "<<originNum<<endl;
+    cout<<"All triangles Number is:"<<interFacets.size()<<endl;
+
+
+
+    return 1;
 }
 
 

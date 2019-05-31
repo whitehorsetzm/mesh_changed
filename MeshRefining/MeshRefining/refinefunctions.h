@@ -36,6 +36,8 @@ int StringToInt(string m);
 
 int partition(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts,int stride=1,int offset=0,int type=0);
 
+int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts,int stride=1,int offset=0,int type=0);
+
 
 int sortPointsID(HYBRID_MESH&mesh);
 

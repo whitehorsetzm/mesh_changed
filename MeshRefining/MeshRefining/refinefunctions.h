@@ -54,6 +54,8 @@ int splitFacet(HYBRID_MESH&oldmesh, HYBRID_MESH &newmesh);
 
 int constructFacets(HYBRID_MESH&mesh, HYBRID_MESH &globalMesh , map<string, int64_t> &tri_globalID);//construct inter facets
 
+int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,int64_t>&tri_globalID);
+
 int constructOneTriangle(int *vertices,TRI& triangle);//construct one triangle
 
 int updateTriIndex(HYBRID_MESH &mesh, map<string, int64_t> &tri_globalID);

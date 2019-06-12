@@ -192,11 +192,7 @@ int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, 
             npart[i]=0;
         }
     }
-    for(int i=0;i<NumPrsm;i++)
-    {
-        tetrasfile.pPrisms[i].partMarker=epart[i];
-        tetrasfile.pPrisms[i].index=i;//reset the index
-    }
+
 
     for(int i=0;i<NumTetras;i++)
     {
@@ -205,6 +201,13 @@ int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, 
         tetrasfile.pTetras[i].index=NumPrsm+i;//reset the index
     }
 
+
+    for(int i=0;i<NumPrsm;i++)
+    {
+      //  tetrasfile.pTetras[i].partMarker=epart[i]*stride+offset;//shift partMarker
+        tetrasfile.pPrisms[i].partMarker=epart[i];
+        tetrasfile.pPrisms[i].index=i;//reset the index
+    }
 
     for(int i=0;i<NumVertices;i++)
     {
@@ -399,7 +402,7 @@ int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, 
 
             tetrasPart[i].pPrisms[count].localID=count;
 
-            //tetrasPart[i].pTetras[count].index=
+          //  tetrasPart[i].pPrisms[count].index=
 
             int tempPartMarker=tetrasPart[i].pPrisms[count].partMarker;
 
@@ -418,21 +421,20 @@ int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, 
         for(setIter=tempTerasPart[i].begin();setIter!=tempTerasPart[i].end();setIter++)
         {
             tempID=*setIter;
-            tetrasPart[i].pTetras[count]=tetrasfile.pTetras[tempID];
-
-            tetrasPart[i].pTetras[count].localID=count;
+          tetrasPart[i].pTetras[count-tetrasfile.NumPrsm]=tetrasfile.pTetras[tempID-tetrasfile.NumPrsm];
+          tetrasPart[i].pTetras[count-tetrasfile.NumPrsm].localID=count;
 
             //tetrasPart[i].pTetras[count].index=
 
-            int tempPartMarker=tetrasPart[i].pTetras[count].partMarker;
+            int tempPartMarker=tetrasPart[i].pTetras[count-tetrasfile.NumPrsm].partMarker;
 
-            tetrasPart[i].pTetras[count].partMarker=tempPartMarker*stride+offset;//////////////shift the partMarker
+            tetrasPart[i].pTetras[count-tetrasfile.NumPrsm].partMarker=tempPartMarker*stride+offset;//////////////shift the partMarker
 
 
             for(int j=0;j<4;j++)
             {
-                tempMID=tetrasPart[i].pTetras[count].vertices[j];
-                tetrasPart[i].pTetras[count].vertices[j]=global_to_local[tempMID];
+                tempMID=tetrasPart[i].pTetras[count-tetrasfile.NumPrsm].vertices[j];
+                tetrasPart[i].pTetras[count-tetrasfile.NumPrsm].vertices[j]=global_to_local[tempMID];
             }
             count++;
 
@@ -501,7 +503,7 @@ int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, 
     map<string,int64_t> tri_globalID;
     for(int i=0;i<nparts;i++)
     {
-        constructFacets(tetrasPart[i],tetrasfile,tri_globalID);
+        constructFacets_test(tetrasPart[i],tetrasfile,tri_globalID);
         char name[256];
         sprintf(name,"%s%d%s","cubeInter",i,".vtk");
        // writeTriangleVTKFile(name,tetrasPart[i]);
@@ -1693,10 +1695,17 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
             mesh.pTetras[i].neighbors[j]=-1;
         }
     }
+    for(int i=0;i<mesh.NumPrsm;i++)
+    {
+        for(int j=0;j<5;j++)
+        {
+            mesh.pPrisms[i].neighbors[j]=-1;
+        }
+    }
     cout<<"Tetras Number is: "<<mesh.NumTetras<<endl;
+    cout<<"Prism Number is: "<<mesh.NumPrsm<<endl;
 
-    setupCellNeig(mesh.NumNodes,mesh.NumTetras,mesh.pTetras);
-
+    setupCellNeig_test(mesh.NumNodes,mesh.NumTetras,&mesh);
     map<string,bool>triMap;
 
     int vertices[3];
@@ -1756,9 +1765,11 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
                 constructOneTriangle(vertices,triangle);
                 triangle.iCell=i;
                 int globalID=mesh.pTetras[i].index;///////////////////
-               // cout<<globalID<<endl;
-                if(globalID<0||globalID>=globalMesh.NumTetras)
+
+                if(globalID<globalMesh.NumPrsm||globalID>=globalMesh.NumPrsm+globalMesh.NumTetras)
                 {
+//                    cout<<i<<endl;
+//                      cout<<globalID<<endl;
                     cout<<"Error in finding the gloabl index!"<<endl;
                 }
                 globalID=globalMesh.pTetras[globalID].neighbors[forth];
@@ -1784,9 +1795,6 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
             }
         }
     }
-
-   // cout<<"No error ..........................."<<endl;
-
     TRI * facets= new TRI[mesh.NumTris];
 
     for(int i=0;i<mesh.NumTris;i++)
@@ -1815,22 +1823,40 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
 
     //   mesh.pTris=facets;
     //facets=nullptr;
+    cout<<"No error ..........................."<<endl;
 
     //  count=;
     for(int i=0;i<interFacets.size();i++)
     {
+
         vertices[0]=interFacets[i].vertices[0];
         vertices[1]=interFacets[i].vertices[1];
         vertices[2]=interFacets[i].vertices[2];
         sort(vertices,vertices+3);
-        string temp=IntToString(vertices[0])+"_";
-        temp+=IntToString(vertices[1]);
-        temp+="_";
-        temp+=IntToString(vertices[2]);
+    //  char *temp=new char[50];
+        char *a=new char[20];
+        const char *temp=to_string(vertices[0]).c_str();
+        printf("%s",temp);
+        const char *ctemp1="_";
+        const char *ctemp2=to_string(vertices[1]).c_str();
+        const char *ctemp3="_";
+        const char *ctemp4=to_string(vertices[2]).c_str();
+
+//        strcat(temp,ctemp);
+//        strcat(temp,ctemp1);
+//        strcat(temp,ctemp2);
+//        strcat(temp,ctemp3);
+//        strcat(temp,ctemp4);
+
+//        string temp=to_string(vertices[0]).append("_");
+//             temp.append(to_string(vertices[1]));
+//            temp.append("_");
+//             temp.append(to_string(vertices[2]));
+
+   //    string temp="6131_6132_6133";
         if(triMap.find(temp)!=triMap.end())
         {
             //case : surface facet or interface created in the last partition
-
 
         }
         else

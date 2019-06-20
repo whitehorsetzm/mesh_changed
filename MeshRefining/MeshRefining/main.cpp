@@ -71,7 +71,7 @@ struct Arguments
     Arguments(int nOutputParts)
         : caseName(nullptr), expectedVol(0), refineTimes(1),
           // nWorkingProcs(num_working_procs)
-          nOutputParts(nOutputParts)
+          nOutputParts(nOutputParts),gmName(nullptr)
     { }
 
     const char *caseName;
@@ -273,39 +273,39 @@ int main1(int argc, char *argv[])
          readCGNS_temp(CGNSfile,tetrasfile,bcstring);
 
 
-         ofstream a;
-         a.open("vtk.vtk");
-         a<<"# vtk DataFile Version 2.0"<<endl;
-         a<<"boundary layer mesh"<<endl;
-         a<<"ASCII"<<endl;
-         a<<"DATASET UNSTRUCTURED_GRID"<<endl;
-         a<<"POINTS "<<tetrasfile.NumNodes<<" float"<<endl;
-         for(int i=0;i<tetrasfile.NumNodes;++i){
-             a<<tetrasfile.nodes[i].coord.x<<" "<<tetrasfile.nodes[i].coord.y<<" "<<tetrasfile.nodes[i].coord.z<<endl;
-         }
-         a<<"CELLS"<<" "<<tetrasfile.numOfCells()<<" "<<tetrasfile.NumPrsm*7+tetrasfile.NumTetras*5<<endl;
-         for(int i=0;i<tetrasfile.NumPrsm;++i){
-             a<<6;
-             for(int j=0;j<6;++j){
-                 a<<" "<<tetrasfile.pPrisms[i].vertices[j];
-             }
-             a<<endl;
-         }
-         for(int i=0;i<tetrasfile.NumTetras;++i){
-             a<<4;
-             for(int j=0;j<4;++j){
-                 a<<" "<<tetrasfile.pTetras[i].vertices[j];
-             }
-             a<<endl;
-         }
-         a<<"CELL_TYPES "<<tetrasfile.numOfCells()<<endl;
-         for(int i=0;i<tetrasfile.NumPrsm;++i){
-             a<<13<<endl;
-         }
-         for(int i=0;i<tetrasfile.NumTetras;++i){
-             a<<10<<endl;
-         }
-         a.close();
+//         ofstream a;
+//         a.open("vtk.vtk");
+//         a<<"# vtk DataFile Version 2.0"<<endl;
+//         a<<"boundary layer mesh"<<endl;
+//         a<<"ASCII"<<endl;
+//         a<<"DATASET UNSTRUCTURED_GRID"<<endl;
+//         a<<"POINTS "<<tetrasfile.NumNodes<<" float"<<endl;
+//         for(int i=0;i<tetrasfile.NumNodes;++i){
+//             a<<tetrasfile.nodes[i].coord.x<<" "<<tetrasfile.nodes[i].coord.y<<" "<<tetrasfile.nodes[i].coord.z<<endl;
+//         }
+//         a<<"CELLS"<<" "<<tetrasfile.numOfCells()<<" "<<tetrasfile.NumPrsm*7+tetrasfile.NumTetras*5<<endl;
+//         for(int i=0;i<tetrasfile.NumPrsm;++i){
+//             a<<6;
+//             for(int j=0;j<6;++j){
+//                 a<<" "<<tetrasfile.pPrisms[i].vertices[j];
+//             }
+//             a<<endl;
+//         }
+//         for(int i=0;i<tetrasfile.NumTetras;++i){
+//             a<<4;
+//             for(int j=0;j<4;++j){
+//                 a<<" "<<tetrasfile.pTetras[i].vertices[j];
+//             }
+//             a<<endl;
+//         }
+//         a<<"CELL_TYPES "<<tetrasfile.numOfCells()<<endl;
+//         for(int i=0;i<tetrasfile.NumPrsm;++i){
+//             a<<13<<endl;
+//         }
+//         for(int i=0;i<tetrasfile.NumTetras;++i){
+//             a<<10<<endl;
+//         }
+//         a.close();
          if(arguments.gmName!=nullptr){                                 //??????????prolem
              char gm3name[256];
          sprintf(gm3name, "%s", arguments.gmName);

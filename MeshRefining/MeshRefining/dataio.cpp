@@ -199,7 +199,17 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
     if (!vecRefIntFHash || !vecInterFaces || !ndIFaces)
     {
         errCode = -1;                                                //申请内存空间并验证是否成功
-//        goto FAIL;
+        goto FAIL;
+    }
+    for(int i=0;i<nAllocFaceSize;++i){
+        vecInterFaces[i].lftCell=-1;
+        vecInterFaces[i].rgtCell=-1;
+        vecInterFaces[i].conn[0]=-1;
+        vecInterFaces[i].conn[1]=-1;
+        vecInterFaces[i].conn[2]=-1;
+        vecInterFaces[i].conn[3]=-1;
+        vecInterFaces[i].hashNxt=-1;
+
     }
 
     ndSize = nNodes;
@@ -899,7 +909,7 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
     }
     }
     goto END;
-//FAIL:
+FAIL:
 END:
     if (vecRefIntFHash)
         free(vecRefIntFHash);

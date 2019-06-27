@@ -13,6 +13,16 @@
 #include <fstream>
 
 using namespace std;
+
+InterFace::InterFace(){
+    for(int i=0;i<BKG_MESH_DIM;++i){
+        conn[i]=-1;
+    }
+    lftCell=-1;
+    rgtCell=-1;
+    hashNxt=-1;
+}
+
 bool equal(double a, double b) {
         if ((a- b> -0.000001) && (a- b) < 0.000001)
             return true;
@@ -200,16 +210,6 @@ int setupCellNeig_test(int nNodes, int nElems, HYBRID_MESH *mesh)
     {
         errCode = -1;                                                //申请内存空间并验证是否成功
         goto FAIL;
-    }
-    for(int i=0;i<nAllocFaceSize;++i){
-        vecInterFaces[i].lftCell=-1;
-        vecInterFaces[i].rgtCell=-1;
-        vecInterFaces[i].conn[0]=-1;
-        vecInterFaces[i].conn[1]=-1;
-        vecInterFaces[i].conn[2]=-1;
-        vecInterFaces[i].conn[3]=-1;
-        vecInterFaces[i].hashNxt=-1;
-
     }
 
     ndSize = nNodes;
@@ -1921,8 +1921,8 @@ int readCGNS_temp(char*filename,HYBRID_MESH&mesh,vector<string>&bcstring)
 
     int nNodes=irmax;
 
-    cgsize_t nprism;
-    cgsize_t ntetras;
+    cgsize_t nprism=0;
+    cgsize_t ntetras=0;
     cgsize_t *prism;
     cgsize_t *tetras;
 
@@ -2020,7 +2020,7 @@ int readCGNS_temp(char*filename,HYBRID_MESH&mesh,vector<string>&bcstring)
 /* close CGNS file */
     cg_close(index_file);
     printf("\nSuccessfully read unstructured grid from file grid_c.cgns\n");
-
+//cout<<"nNodes "<<nNodes<<"nprism "<<nprism<<" ntetras "<<ntetras<<" nTriSum "<<nTriSum<<endl;
     mesh.NumNodes=nNodes;
     mesh.nodes=new Node[nNodes];
     mesh.NumPrsm=nprism;
@@ -2029,7 +2029,6 @@ int readCGNS_temp(char*filename,HYBRID_MESH&mesh,vector<string>&bcstring)
     mesh.pTetras=new TETRAS[ntetras];
     mesh.NumTris=nTriSum;
     mesh.pTris=new TRI[nTriSum];
-
     for(int i=0;i<nNodes;i++)
     {
         mesh.nodes[i].index=i;
@@ -2060,10 +2059,10 @@ int readCGNS_temp(char*filename,HYBRID_MESH&mesh,vector<string>&bcstring)
         mesh.pTetras[i].vertices[3]=tetras[i*4+3]-1;
     }
 
-
+     int sum=tri_count;
     tri_count=0;
    // mesh.pTris[i].index=i;
-    for(int j=0;j<nsections-2;j++)
+    for(int j=0;j<sum;j++)
     {
         for(int k=0;k<nTriSection[j];k++)
         {

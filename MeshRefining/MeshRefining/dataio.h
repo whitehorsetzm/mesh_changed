@@ -17,10 +17,12 @@ using namespace std;
 class InterFace
 {
 public:
+    InterFace();
     int conn[BKG_MESH_DIM];
     int lftCell, rgtCell;
     int hashNxt;
 };
+
 
 bool isNullOrComment(char* chLine);
 

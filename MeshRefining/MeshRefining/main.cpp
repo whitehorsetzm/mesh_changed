@@ -272,7 +272,6 @@ int main1(int argc, char *argv[])
            cout<<"rank =========="<<rank<<endl;
          readCGNS_temp(CGNSfile,tetrasfile,bcstring);
 
-
 //         ofstream a;
 //         a.open("vtk.vtk");
 //         a<<"# vtk DataFile Version 2.0"<<endl;
@@ -320,6 +319,8 @@ int main1(int argc, char *argv[])
                  coord[i*3+2]=tetrasfile.nodes[i].coord.z;
              }
              for(int i=0;i<tetrasfile.NumTris;++i){
+                 cout<<"i= "<<i<<"   "<<tetrasfile.pTris[i].vertices[0]<<"    "<<tetrasfile.pTris[i].vertices[1]<<"     "<<tetrasfile.pTris[i].vertices[2]<<endl;
+
                  vertices[i*3+0]=tetrasfile.pTris[i].vertices[0];
                  vertices[i*3+1]=tetrasfile.pTris[i].vertices[1];
                  vertices[i*3+2]=tetrasfile.pTris[i].vertices[2];
@@ -331,7 +332,9 @@ int main1(int argc, char *argv[])
 
 //             GBSolid gbsolid;
 //             read_gm3(GM3file,&gbsolid);
+             cout<<"test here"<<endl;
              ref.initial(tetrasfile.NumNodes,coord,tetrasfile.NumTris,vertices);
+             cout<<"test here"<<endl;
              for(int i=0;i<tetrasfile.NumTris;++i){
                  tetrasfile.pTris[i].iSurface=ref.subject_table[i];
              }
@@ -400,7 +403,7 @@ int main1(int argc, char *argv[])
         if(arguments.gmName!=nullptr)
         meshRefining(*originalMesh, *refinedMesh, rank,ref);
         else
-        meshRefining(*originalMesh, *refinedMesh, rank);
+        meshRefining_test(*originalMesh, *refinedMesh, rank);
 
 
         unifyBoundaries(*originalMesh, *refinedMesh, MPI_COMM_WORLD);

@@ -20,12 +20,11 @@ void Refletion::datainitail(HybridMesh &mesh){
     int k;
     ref_table = new temp[mesh.NumNodes];
     double min = 1e10;
-
     discretsolid.NumFacets=mesh.NumTris;
     discretsolid.NumPoints=mesh.NumNodes;
     discretsolid.discreteFacets=new DiscretFacet[discretsolid.NumFacets];
     discretsolid.discretPoints=new DiscretPoint[discretsolid.NumPoints];
-    for(int i=0;i<discretsolid.NumFacets;++i){
+    for(int i=0;i<discretsolid.NumPoints;++i){
         discretsolid.discretPoints[i].index=i;
                discretsolid.discretPoints[i].x=mesh.nodes[i].coord.x;
                discretsolid.discretPoints[i].y=mesh.nodes[i].coord.y;
@@ -34,12 +33,15 @@ void Refletion::datainitail(HybridMesh &mesh){
 
     for(int i=0;i<discretsolid.NumFacets;++i){
         discretsolid.discreteFacets[i].index=i;
+  //      cout<<"i= "<<i<<"   "<<mesh.pTris[i].vertices[0]<<"    "<<mesh.pTris[i].vertices[1]<<"     "<<mesh.pTris[i].vertices[2]<<endl;
         discretsolid.discreteFacets[i].points[0]=mesh.pTris[i].vertices[0];
         discretsolid.discreteFacets[i].points[1]=mesh.pTris[i].vertices[1];
         discretsolid.discreteFacets[i].points[2]=mesh.pTris[i].vertices[2];
     }
     buildRelationshipByPoint(&discretsolid);
+     cout<<"test here2"<<endl;
     buildFacetRelationshipByEdge(&discretsolid);     //拓扑关系建立有问题
+    cout<<"test here2"<<endl;
 
 ////    ofstream test1;
 ////    test1.open("test1.txt");

@@ -967,6 +967,215 @@ int updateTriIndex(HYBRID_MESH &mesh,map<string,int64_t>&tri_globalID)
     }
     return 1;
 }
+
+int meshRefining_test(HYBRID_MESH &tetrasfile,HYBRID_MESH &newTetrasfile,int partMarker)
+{
+    //HYBRID_MESH newTetrasfile;
+    //delete the self Procs
+    set<int>::iterator setIter;
+    for(int i=0;i<tetrasfile.NumNodes;i++)
+    {
+     //   set<int> &procs = tetrasfile.nodes[i].procs;
+       // for(setIter=tetrasfile.nodes[i].procs.begin();setIter!=tetrasfile.nodes[i].procs.end();)
+        tetrasfile.nodes[i].procs.erase(partMarker);
+        tetrasfile.nodes[i].NumProcs=tetrasfile.nodes[i].procs.size();
+        // assert(tetrasfile.nodes[i].procs.size() < 2);
+    }
+
+
+    map<string,newNode>edgeHash;
+    map<string,newNode>faceHash;
+
+    edgeHash.clear();
+    int NumNodes=tetrasfile.NumNodes;
+    int NumNewNodes=NumNodes;
+    int NumElements=tetrasfile.NumTetras+tetrasfile.NumPrsm;
+
+    int edgeID[6][2]=
+    {
+        0,1,
+        0,2,
+        0,3,
+        1,2,
+        1,3,
+        2,3
+    };
+
+    int prism_edgeID[9][2]=
+    {
+        0,1,//0
+        0,2,//1
+        0,3,//2
+        1,2,//3
+        1,4,//4
+        2,5,//5
+        3,4,//6
+        3,5,//7
+        4,5//8
+    };
+    int prism_faceID[3][4]=
+    {
+      0,3,5,2,//0
+      0,1,4,3,//1
+      1,2,5,4 //2
+    };
+
+    int Estart=-1;
+    int Eend=-1;
+    int vec[4];
+    int startID=-1;
+    int endID=-1;
+    int mid=-1;
+    string temp;
+    pair<string,newNode> edgePair;
+    pair<string,newNode> facePair;
+    for(int i=0;i<NumElements;i++)
+    {
+        if(i<tetrasfile.NumPrsm){
+            for(int j=0;j<3;j++){
+                for(int k=0;k<4;++k){
+                    vec[k]=tetrasfile.pPrisms[i].vertices[prism_faceID[j][k]];
+                }
+                sort(vec,vec+4);
+                temp=IntToString(vec[0])+"_"+IntToString(vec[1])+"_"+IntToString(vec[2])+"_"+IntToString(vec[3]);
+                if(faceHash.find(temp)!=faceHash.end())
+                {
+                    //find it, do nothing
+                }
+                else
+                {
+                    //not found
+                    facePair.first=temp;
+                    newNode nodetemp;
+                    nodetemp.localID=NumNewNodes;
+                    NumNewNodes++;
+                    nodetemp.coord=tetrasfile.nodes[vec[0]].coord+tetrasfile.nodes[vec[1]].coord+tetrasfile.nodes[vec[2]].coord+tetrasfile.nodes[vec[3]].coord;
+                    nodetemp.coord=nodetemp.coord/4;
+                    edgePair.second=nodetemp;
+
+                    faceHash.insert(facePair);
+                }
+            }
+            for(int j=0;j<9;j++)
+            {
+                Estart=prism_edgeID[j][0];
+                Eend=prism_edgeID[j][1];
+                startID=tetrasfile.pPrisms[i].vertices[Estart];
+                endID=tetrasfile.pPrisms[i].vertices[Eend];
+                if(startID>endID)
+                {
+                    mid=startID;
+                    startID=endID;
+                    endID=mid;
+                }
+                temp=IntToString(startID)+"_"+IntToString(endID);
+                if(edgeHash.find(temp)!=edgeHash.end())
+                {
+                    //find it, do nothing
+                }
+                else
+                {
+                    //not found
+                    edgePair.first=temp;
+                    newNode nodetemp;
+                    nodetemp.localID=NumNewNodes;
+                    NumNewNodes++;
+                    nodetemp.coord=tetrasfile.nodes[startID].coord+tetrasfile.nodes[endID].coord;
+                    nodetemp.coord=nodetemp.coord/2;
+                    edgePair.second=nodetemp;
+
+                    edgeHash.insert(edgePair);
+                }
+            }
+        }
+       else{
+        for(int j=0;j<6;j++)
+        {
+            Estart=edgeID[j][0];
+            Eend=edgeID[j][1];
+            startID=tetrasfile.pTetras[i-tetrasfile.NumPrsm].vertices[Estart];
+            endID=tetrasfile.pTetras[i-tetrasfile.NumPrsm].vertices[Eend];
+            if(startID>endID)
+            {
+                mid=startID;
+                startID=endID;
+                endID=mid;
+            }
+            temp=IntToString(startID)+"_"+IntToString(endID);
+            if(edgeHash.find(temp)!=edgeHash.end())
+            {
+                //find it, do nothing
+            }
+            else
+            {
+                //not found
+                edgePair.first=temp;
+                newNode nodetemp;
+                nodetemp.localID=NumNewNodes;
+                NumNewNodes++;
+                nodetemp.coord=tetrasfile.nodes[startID].coord+tetrasfile.nodes[endID].coord;
+                nodetemp.coord=nodetemp.coord/2;
+                edgePair.second=nodetemp;
+
+                edgeHash.insert(edgePair);
+            }
+        }
+}
+    }
+
+    newTetrasfile.NumNodes=NumNewNodes;
+    newTetrasfile.nodes=new Node[NumNewNodes];
+
+    //---------------//锟斤拷锟斤拷锟铰憋拷锟斤拷锟斤拷锟斤拷锟侥斤拷锟斤拷锟斤拷息 //---------------///
+    for(int i=0;i<NumNodes;i++)
+    {
+        newTetrasfile.nodes[i]=tetrasfile.nodes[i];//local ID
+    }
+    map<string,newNode>::iterator iter;
+
+    newNode midtemp;
+    int indextemp=-1;
+    for(iter=edgeHash.begin();iter!=edgeHash.end();iter++)
+    {
+        midtemp=iter->second;
+        indextemp=midtemp.localID;
+        newTetrasfile.nodes[indextemp].index=-1;
+        newTetrasfile.nodes[indextemp].localID=indextemp;
+        newTetrasfile.nodes[indextemp].coord=midtemp.coord;
+    }
+
+
+
+    //---------------//锟斤拷锟斤拷锟铰憋拷锟斤拷锟斤拷锟斤拷锟侥碉拷元锟斤拷息 //---------------///
+
+    int NumNewElements=NumElements*8;//one element are divide into 8 parts
+    newTetrasfile.NumTetras=tetrasfile.NumTetras*8;
+    newTetrasfile.NumPrsm=tetrasfile.NumPrsm*8;
+    newTetrasfile.pTetras=new TETRAS[tetrasfile.NumTetras*8];
+    newTetrasfile.pPrisms=new PRISM[tetrasfile.NumPrsm*8];
+
+
+
+
+
+    sixNodesPattern(tetrasfile,newTetrasfile,edgeHash);
+    sixNodesPattern_test(tetrasfile,newTetrasfile,edgeHash,faceHash);
+    printf("oldelems=%d;newelems=%d \n",NumElements,NumNewElements);
+
+
+    //find the iCell of the triangles
+    setupCellNeig_test(newTetrasfile.NumNodes,newTetrasfile.NumTetras,&newTetrasfile);//local
+
+//    findiCellFast(newTetrasfile);
+
+
+
+
+
+    return 1;
+}
+
+
 int meshRefining(HYBRID_MESH &tetrasfile,HYBRID_MESH &newTetrasfile,int partMarker)
 {
     //HYBRID_MESH newTetrasfile;
@@ -1076,6 +1285,7 @@ int meshRefining(HYBRID_MESH &tetrasfile,HYBRID_MESH &newTetrasfile,int partMark
 
 
     sixNodesPattern(tetrasfile,newTetrasfile,edgeHash);
+
 
     printf("oldelems=%d;newelems=%d \n",NumElements,NumNewElements);
 
@@ -1503,7 +1713,7 @@ int sixNodesPattern(HYBRID_MESH &oldmesh, HYBRID_MESH &newmesh, map<string, newN
     return 1;
 
 }
-int sixNodesPattern_test(HYBRID_MESH &oldmesh, HYBRID_MESH &newmesh, map<string, newNode> &edgeHash)
+int sixNodesPattern_test(HYBRID_MESH &oldmesh, HYBRID_MESH &newmesh, map<string, newNode> &edgeHash,map<string, newNode> &faceHash)
 {
     int edgeID[9][2]=
     {
@@ -1517,8 +1727,14 @@ int sixNodesPattern_test(HYBRID_MESH &oldmesh, HYBRID_MESH &newmesh, map<string,
         3,5,//7
         4,5,//8
     };
+    int prism_faceID[3][4]=
+    {
+      0,3,5,2,//0
+      0,1,4,3,//1
+      1,2,5,4 //2
+    };
 
-    int newPointID[9];//corresponded with edgeID
+    int newPointID[12];//corresponded with edgeID
 
     int Estart=-1;
     int Eend=-1;
@@ -1533,9 +1749,31 @@ int sixNodesPattern_test(HYBRID_MESH &oldmesh, HYBRID_MESH &newmesh, map<string,
     newNode Nodetemp;
     int mid=-1;
     string temp;
+    int vec[4];
     for(int i=0;i<oldmesh.NumPrsm;i++)
     {
-        //get the nine new points
+        //get the eleven new points
+        for(int j=0;j<3;j++)
+        {
+            for(int k=0;k<4;++k){
+                vec[k]=oldmesh.pPrisms[i].vertices[prism_faceID[j][k]];
+            }
+            sort(vec,vec+4);
+            temp=IntToString(vec[0])+"_"+IntToString(vec[1])+"_"+IntToString(vec[2])+"_"+IntToString(vec[3]);
+            iter=faceHash.find(temp);
+            if(iter==faceHash.end())
+            {
+                cout<<"Error in finding the new point!"<<endl;
+                exit(1);
+            }
+            else
+            {
+                Nodetemp=iter->second;
+                newPointID[j+9]=Nodetemp.localID;
+            }
+
+        }
+
         for(int j=0;j<9;j++)
         {
             Estart=edgeID[j][0];
@@ -1561,73 +1799,85 @@ int sixNodesPattern_test(HYBRID_MESH &oldmesh, HYBRID_MESH &newmesh, map<string,
                 newPointID[j]=Nodetemp.localID;
             }
         }
+
         //construct new 8 tetras
-
-
         //No1
-        newmesh.pPrisms[count].vertices[0]=oldmesh.pTetras[i].vertices[0];
-        newmesh.pPrisms[count].vertices[1]=newPointID[0];//0-1
-        newmesh.pPrisms[count].vertices[2]=newPointID[1];//0-2
-        newmesh.pPrisms[count].vertices[3]=newPointID[2];//0-3
-        newmesh.pPrisms[count].vertices[3]=newPointID[2];//0-3
+        newmesh.pPrisms[count].vertices[0]=oldmesh.pPrisms[i].vertices[0];
+        newmesh.pPrisms[count].vertices[1]=newPointID[0];
+        newmesh.pPrisms[count].vertices[2]=newPointID[1];
+        newmesh.pPrisms[count].vertices[4]=newPointID[2];
+        newmesh.pPrisms[count].vertices[5]=newPointID[9];
+        newmesh.pPrisms[count].vertices[6]=newPointID[10];
         count++;
 
         //No2
-        newmesh.pTetras[count].vertices[0]=newPointID[0];//0-1
-        newmesh.pTetras[count].vertices[1]=oldmesh.pTetras[i].vertices[1];
-        newmesh.pTetras[count].vertices[2]=newPointID[3];//1-2
-        newmesh.pTetras[count].vertices[3]=newPointID[4];//1-3
+        newmesh.pPrisms[count].vertices[0]=oldmesh.pPrisms[i].vertices[1];
+        newmesh.pPrisms[count].vertices[1]=newPointID[0];
+        newmesh.pPrisms[count].vertices[2]=newPointID[3];
+        newmesh.pPrisms[count].vertices[4]=newPointID[4];
+        newmesh.pPrisms[count].vertices[5]=newPointID[10];
+        newmesh.pPrisms[count].vertices[6]=newPointID[11];
         count++;
 
-
         //No3
-        newmesh.pTetras[count].vertices[0]=newPointID[1];//0-2
-        newmesh.pTetras[count].vertices[1]=newPointID[3];//1-2
-        newmesh.pTetras[count].vertices[2]=oldmesh.pTetras[i].vertices[2];
-        newmesh.pTetras[count].vertices[3]=newPointID[5];//2-3
+        newmesh.pPrisms[count].vertices[0]=oldmesh.pPrisms[i].vertices[2];
+        newmesh.pPrisms[count].vertices[1]=newPointID[1];
+        newmesh.pPrisms[count].vertices[2]=newPointID[3];
+        newmesh.pPrisms[count].vertices[4]=newPointID[5];
+        newmesh.pPrisms[count].vertices[5]=newPointID[9];
+        newmesh.pPrisms[count].vertices[6]=newPointID[11];
         count++;
 
 
         //No4
-        newmesh.pTetras[count].vertices[0]=newPointID[2];//0-3
-        newmesh.pTetras[count].vertices[1]=newPointID[4];//1-3
-        newmesh.pTetras[count].vertices[2]=newPointID[5];//2-3
-        newmesh.pTetras[count].vertices[3]=oldmesh.pTetras[i].vertices[3];
+        newmesh.pPrisms[count].vertices[0]=oldmesh.pPrisms[i].vertices[3];
+        newmesh.pPrisms[count].vertices[1]=newPointID[2];
+        newmesh.pPrisms[count].vertices[2]=newPointID[6];
+        newmesh.pPrisms[count].vertices[4]=newPointID[7];
+        newmesh.pPrisms[count].vertices[5]=newPointID[9];
+        newmesh.pPrisms[count].vertices[6]=newPointID[10];
         count++;
 
 
         //No5
-        newmesh.pTetras[count].vertices[0]=newPointID[2];//0-3
-        newmesh.pTetras[count].vertices[1]=newPointID[0];//0-1
-        newmesh.pTetras[count].vertices[2]=newPointID[3];//1-2
-        newmesh.pTetras[count].vertices[3]=newPointID[4];//1-3
+        newmesh.pPrisms[count].vertices[0]=oldmesh.pPrisms[i].vertices[4];
+        newmesh.pPrisms[count].vertices[1]=newPointID[4];
+        newmesh.pPrisms[count].vertices[2]=newPointID[6];
+        newmesh.pPrisms[count].vertices[4]=newPointID[8];
+        newmesh.pPrisms[count].vertices[5]=newPointID[10];
+        newmesh.pPrisms[count].vertices[6]=newPointID[11];
         count++;
 
 
         //No6
-        newmesh.pTetras[count].vertices[0]=newPointID[2];//0-3
-        newmesh.pTetras[count].vertices[1]=newPointID[3];//1-2
-        newmesh.pTetras[count].vertices[2]=newPointID[5];//2-3
-        newmesh.pTetras[count].vertices[3]=newPointID[4];//1-3
+        newmesh.pPrisms[count].vertices[0]=oldmesh.pPrisms[i].vertices[5];
+        newmesh.pPrisms[count].vertices[1]=newPointID[5];
+        newmesh.pPrisms[count].vertices[2]=newPointID[7];
+        newmesh.pPrisms[count].vertices[4]=newPointID[8];
+        newmesh.pPrisms[count].vertices[5]=newPointID[9];
+        newmesh.pPrisms[count].vertices[6]=newPointID[11];
         count++;
 
         //No7
-        newmesh.pTetras[count].vertices[0]=newPointID[0];//0-1
-        newmesh.pTetras[count].vertices[1]=newPointID[2];//0-3
-        newmesh.pTetras[count].vertices[2]=newPointID[3];//1-2
-        newmesh.pTetras[count].vertices[3]=newPointID[1];//0-2
+        newmesh.pPrisms[count].vertices[1]=newPointID[0];
+        newmesh.pPrisms[count].vertices[2]=newPointID[1];
+        newmesh.pPrisms[count].vertices[1]=newPointID[2];
+        newmesh.pPrisms[count].vertices[4]=newPointID[9];
+        newmesh.pPrisms[count].vertices[5]=newPointID[10];
+        newmesh.pPrisms[count].vertices[6]=newPointID[11];
         count++;
 
 
         //No8
-        newmesh.pTetras[count].vertices[0]=newPointID[3];//1-2
-        newmesh.pTetras[count].vertices[1]=newPointID[2];//0-3
-        newmesh.pTetras[count].vertices[2]=newPointID[5];//2-3
-        newmesh.pTetras[count].vertices[3]=newPointID[1];//0-2
+        newmesh.pPrisms[count].vertices[1]=newPointID[6];
+        newmesh.pPrisms[count].vertices[2]=newPointID[7];
+        newmesh.pPrisms[count].vertices[4]=newPointID[8];
+        newmesh.pPrisms[count].vertices[4]=newPointID[9];
+        newmesh.pPrisms[count].vertices[5]=newPointID[10];
+        newmesh.pPrisms[count].vertices[6]=newPointID[11];
         count++;
-
     }
-    assert(count==newmesh.NumTetras);
+    assert(count==newmesh.NumPrsm);
     //split the facets
     newNode midtemp;
     for(int i=0;i<oldmesh.NumTris;i++)
@@ -1655,6 +1905,7 @@ int sixNodesPattern_test(HYBRID_MESH &oldmesh, HYBRID_MESH &newmesh, map<string,
             }
         }
     }
+
     newmesh.NumTris=oldmesh.NumTris*4;
     newmesh.pTris=new TRI[newmesh.NumTris];
     count=0;
@@ -1686,6 +1937,7 @@ int sixNodesPattern_test(HYBRID_MESH &oldmesh, HYBRID_MESH &newmesh, map<string,
         newmesh.pTris[count].vertices[2]=oldmesh.pTris[i].addedNodes[2];
         count++;
     }
+
 
     assert(count==newmesh.NumTris);
 
@@ -1898,7 +2150,6 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
     }
     cout<<"Tetras Number is: "<<mesh.NumTetras<<endl;
     cout<<"Prism Number is: "<<mesh.NumPrsm<<endl;
-
     setupCellNeig_test(mesh.NumNodes,mesh.NumTetras,&mesh);
     map<string,bool>triMap;
 
@@ -1998,7 +2249,7 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
                 }
                 else
                 {
-                    triangle.iOppoProc=globalMesh.pTetras[globalID].partMarker;
+                    triangle.iOppoProc=globalMesh.pTetras[globalID-globalMesh.NumPrsm].partMarker;
                     //cout<<"forth:  "<<temp<<endl;
                    // cout<<triangle.iOppoProc<<endl;
 

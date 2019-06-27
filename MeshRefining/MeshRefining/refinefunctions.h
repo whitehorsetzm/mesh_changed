@@ -45,10 +45,13 @@ int sortPointsID(HYBRID_MESH&mesh);
 int meshRefining(HYBRID_MESH &tetrasfile,HYBRID_MESH &newTetrasfile,int partMarker,Refletion &_table);
 
 int meshRefining(HYBRID_MESH &tetrasfile,HYBRID_MESH &newTetrasfile,int partMarker);
+int meshRefining_test(HYBRID_MESH &tetrasfile,HYBRID_MESH &newTetrasfile,int partMarker);
 
 int sixNodesPattern(HYBRID_MESH&oldmesh, HYBRID_MESH &newmesh, map<string, newNode> &edgeHash,Refletion &ref);
 
 int sixNodesPattern(HYBRID_MESH&oldmesh, HYBRID_MESH &newmesh, map<string, newNode> &edgeHash);
+
+int sixNodesPattern_test(HYBRID_MESH &oldmesh, HYBRID_MESH &newmesh, map<string, newNode> &edgeHash,map<string, newNode> &faceHash);
 
 int splitFacet(HYBRID_MESH&oldmesh, HYBRID_MESH &newmesh);
 

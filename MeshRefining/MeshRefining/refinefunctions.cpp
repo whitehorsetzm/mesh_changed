@@ -176,10 +176,10 @@ int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, 
 
     if(nparts>1)
     {
-        cout<<"test"<<endl;
+
         int results=METIS_PartMeshDual(&NumElement,&NumVertices,eptr,eind,vwgt,nullptr,&ncommon,&NumParts,nullptr,
                                        nullptr,&objvalue ,epart,npart);
-        cout<<"results"<<results<<endl;
+
     }
     else
     {
@@ -267,6 +267,9 @@ int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, 
         }
      //   pointID=tetrasfile.pTetras[i].vertices[0];
     }
+     for(int i=0;i<tetrasfile.NumNodes;i++){
+         cout<<tetrasfile.nodes[i].procs.size()<<endl;
+     }
 
     //prepare the data to deliver
 
@@ -361,7 +364,7 @@ int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, 
 //        a.close();
         for(setIter=tempTerasPart[i].begin();setIter!=tempTerasPart[i].end();setIter++)
         {
-            tempID=*setIter-tempPrismPart->size();
+            tempID=*setIter-NumPrsm;
 
             for(int j=0;j<4;j++)
             {
@@ -393,7 +396,6 @@ int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, 
             tetrasPart[i].nodes[j].localID=j;
         }
         count=0;
-        cout<<"test"<<endl;
         //insert elementID
         for(setIter=tempPrismPart[i].begin();setIter!=tempPrismPart[i].end();setIter++)
         {
@@ -421,20 +423,20 @@ int partition_test(HYBRID_MESH&tetrasfile, HYBRID_MESH *tetrasPart, int nparts, 
         for(setIter=tempTerasPart[i].begin();setIter!=tempTerasPart[i].end();setIter++)
         {
             tempID=*setIter;
-          tetrasPart[i].pTetras[count-tetrasfile.NumPrsm]=tetrasfile.pTetras[tempID-tetrasfile.NumPrsm];
-          tetrasPart[i].pTetras[count-tetrasfile.NumPrsm].localID=count;
+          tetrasPart[i].pTetras[count-tetrasPart[i].NumPrsm]=tetrasfile.pTetras[tempID-tetrasfile.NumPrsm];
+          tetrasPart[i].pTetras[count-tetrasPart[i].NumPrsm].localID=count;
 
             //tetrasPart[i].pTetras[count].index=
 
-            int tempPartMarker=tetrasPart[i].pTetras[count-tetrasfile.NumPrsm].partMarker;
+            int tempPartMarker=tetrasPart[i].pTetras[count-tetrasPart[i].NumPrsm].partMarker;
 
-            tetrasPart[i].pTetras[count-tetrasfile.NumPrsm].partMarker=tempPartMarker*stride+offset;//////////////shift the partMarker
+            tetrasPart[i].pTetras[count-tetrasPart[i].NumPrsm].partMarker=tempPartMarker*stride+offset;//////////////shift the partMarker
 
 
             for(int j=0;j<4;j++)
             {
-                tempMID=tetrasPart[i].pTetras[count-tetrasfile.NumPrsm].vertices[j];
-                tetrasPart[i].pTetras[count-tetrasfile.NumPrsm].vertices[j]=global_to_local[tempMID];
+                tempMID=tetrasPart[i].pTetras[count-tetrasPart[i].NumPrsm].vertices[j];
+                tetrasPart[i].pTetras[count-tetrasPart[i].NumPrsm].vertices[j]=global_to_local[tempMID];
             }
             count++;
 
@@ -2189,7 +2191,47 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
     pris[3] = pris4;
     pris[4] = pris5;
 
-
+//    ofstream a;
+//    a.open("triange.txt");
+//    for(int i=0;i<mesh.NumTetras;++i){
+//        for(int j=0;j<4;++j)
+//        a<<mesh.pTetras[i].neighbors[j]<<"   ";
+//        a<<endl;
+//    }
+//    a.close();
+             ofstream a;
+             a.open("vtk.vtk");
+             a<<"# vtk DataFile Version 2.0"<<endl;
+             a<<"boundary layer mesh"<<endl;
+             a<<"ASCII"<<endl;
+             a<<"DATASET UNSTRUCTURED_GRID"<<endl;
+             a<<"POINTS "<<mesh.NumNodes<<" float"<<endl;
+             for(int i=0;i<mesh.NumNodes;++i){
+                 a<<mesh.nodes[i].coord.x<<" "<<mesh.nodes[i].coord.y<<" "<<mesh.nodes[i].coord.z<<endl;
+             }
+             a<<"CELLS"<<" "<<mesh.numOfCells()<<" "<<mesh.NumPrsm*7+mesh.NumTetras*5<<endl;
+             for(int i=0;i<mesh.NumPrsm;++i){
+                 a<<6;
+                 for(int j=0;j<6;++j){
+                     a<<" "<<mesh.pPrisms[i].vertices[j];
+                 }
+                 a<<endl;
+             }
+             for(int i=0;i<mesh.NumTetras;++i){
+                 a<<4;
+                 for(int j=0;j<4;++j){
+                     a<<" "<<mesh.pTetras[i].vertices[j];
+                 }
+                 a<<endl;
+             }
+             a<<"CELL_TYPES "<<mesh.numOfCells()<<endl;
+             for(int i=0;i<mesh.NumPrsm;++i){
+                 a<<13<<endl;
+             }
+             for(int i=0;i<mesh.NumTetras;++i){
+                 a<<10<<endl;
+             }
+             a.close();
 
     vector<TRI> interFacets;
     int count=0;
@@ -2232,7 +2274,7 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
 //                      cout<<globalID<<endl;
                     cout<<"Error in finding the gloabl index!"<<endl;
                 }
-                globalID=globalMesh.pTetras[globalID].neighbors[forth];
+                globalID=globalMesh.pTetras[globalID-globalMesh.NumPrsm].neighbors[forth];
        //        cout<<mesh.pTetras[i].neighbors[forth]<<endl;
                 if(globalID==-1)
                 {
@@ -2254,7 +2296,7 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
                    // cout<<triangle.iOppoProc<<endl;
 
                 }
-                interFacets.push_back(triangle);
+        //        interFacets.push_back(triangle);
             }
             else
             {
@@ -2395,7 +2437,7 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
             globalVertices[1]=mesh.nodes[vertices[1]].index;
             globalVertices[2]=mesh.nodes[vertices[2]].index;
             sort(globalVertices,globalVertices+3);
-            string gTemp=IntToString(globalVertices[0])+"_"+IntToString(globalVertices[1])+"_"+IntToString(globalVertices[2]);
+            string gTemp=to_string(globalVertices[0])+"_"+to_string(globalVertices[1])+"_"+to_string(globalVertices[2]);
 
             tri_globalID[gTemp]=-1;//temp value == -1////need gloabl index;
 
@@ -2403,8 +2445,11 @@ int constructFacets_test(HYBRID_MESH&mesh, HYBRID_MESH& globalMesh,map<string,in
             count++;
         }
     }
-
-    assert(count==mesh.NumTris);
+    cout<<interFacets.size()<<"!!!!!!!!!!!!!!!!!!!!"<<count<<endl;    //butong  xuyao xiugai
+    cout<<"Counter of the facets is: "<<Numtri<<endl;
+    cout<<"Surface triangle Number is "<<originNum<<endl;
+    cout<<"All triangles Number is:"<<interFacets.size()<<endl;
+//    assert(count==mesh.NumTris);
 
     cout<<"Counter of the facets is: "<<Numtri<<endl;
     cout<<"Surface triangle Number is "<<originNum<<endl;

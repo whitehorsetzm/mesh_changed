@@ -39,9 +39,7 @@ void Refletion::datainitail(HybridMesh &mesh){
         discretsolid.discreteFacets[i].points[2]=mesh.pTris[i].vertices[2];
     }
     buildRelationshipByPoint(&discretsolid);
-     cout<<"test here2"<<endl;
     buildFacetRelationshipByEdge(&discretsolid);     //拓扑关系建立有问题
-    cout<<"test here2"<<endl;
 
 ////    ofstream test1;
 ////    test1.open("test1.txt");

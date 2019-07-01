@@ -2074,10 +2074,10 @@ int readCGNS_temp(char*filename,HYBRID_MESH&mesh,vector<string>&bcstring)
             tri_count++;
         }
     }
- cout<<"succesfull"<<endl;
+// cout<<"succesfull"<<endl;
     assert(count==nTriSum);
 
- cout<<"succesfull"<<endl;
+// cout<<"succesfull"<<endl;
     return 1;
 }
 

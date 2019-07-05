@@ -16,31 +16,22 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 
-3
+2
 (
     wall
     {
         type            patch;
-        nFaces          98680;
-        startFace       855788;
+        nFaces          145624;
+        startFace       1739228;
     }
     procBoundary1to0
     {
         type            processor;
-        nFaces          1544;
-        startFace       954468;
+        nFaces          1872;
+        startFace       1884852;
         matchTolerance  0.000100;
         myProcNo        1;
         neighbProcNo    0;
-    }
-    procBoundary1to2
-    {
-        type            processor;
-        nFaces          328;
-        startFace       956012;
-        matchTolerance  0.000100;
-        myProcNo        1;
-        neighbProcNo    2;
     }
 )
 

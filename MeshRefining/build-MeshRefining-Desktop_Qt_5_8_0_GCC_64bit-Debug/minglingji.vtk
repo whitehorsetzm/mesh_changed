@@ -1,2 +1,0 @@
-mpiexec -n 4 valgrind --tool=memcheck --leak-check=full --track-origins=yes ./MeshRefining cube -r 1
-

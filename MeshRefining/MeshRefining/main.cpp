@@ -15,7 +15,7 @@
 #include "fstream"
 //#include "smooth.h"
 #define VTK_OUTPUT;
-#define DEBUG
+//#define DEBUG
 using namespace std;
 int writepl3(char *filename, HYBRID_MESH &file)
 {
@@ -222,36 +222,6 @@ int main1(int argc, char *argv[])
         MPI_Comm_rank(workComm, &workCommRank);
     */
 
-//  size=2;
-//    char CGNSfile[256];
-//   char GM3file[256];
-//    strcpy(CGNSfile, filename);
-//    strcat(CGNSfile, ".cgns");
-//    cout<<CGNSfile<<endl;
-//    readCGNS(CGNSfile,tetrasfile,bcstring);
-//    if(arguments.gmName!=nullptr){
-//        char gm3name[256];
-//    sprintf(gm3name, "%s", arguments.gmName);
-//        strcpy(GM3file, gm3name);
-//        strcat(GM3file, ".gm3");
-//        cout<<GM3file<<endl;
-//        double coord[tetrasfile.NumNodes*3];
-//        int    vertices[tetrasfile.NumTris*3];
-//        for(int i=0;i<tetrasfile.NumNodes;++i){
-//            coord[i*3+0]=tetrasfile.nodes[i].coord.x;
-//            coord[i*3+1]=tetrasfile.nodes[i].coord.y;
-//            coord[i*3+2]=tetrasfile.nodes[i].coord.z;
-//        }
-//        for(int i=0;i<tetrasfile.NumTris;++i){
-//            vertices[i*3+0]=tetrasfile.pTris[i].vertices[0];
-//            vertices[i*3+1]=tetrasfile.pTris[i].vertices[1];
-//            vertices[i*3+2]=tetrasfile.pTris[i].vertices[2];
-//        }
-//        cout<<"test1"<<endl;
-//        ref.initial(GM3file,tetrasfile.NumNodes,coord,tetrasfile.NumTris,vertices);
-//        for(int i=0;i<tetrasfile.NumTris;++i){
-//            tetrasfile.pTris[i].iSurface=ref.subject_table[i];
-//        }
     if(arguments.gmName!=nullptr){
         cout<<"read gm3!!!!"<<endl;
         char GM3file[256];
@@ -272,40 +242,8 @@ int main1(int argc, char *argv[])
            cout<<"rank =========="<<rank<<endl;
          readCGNS_temp(CGNSfile,tetrasfile,bcstring);
 
-//         ofstream a;
-//         a.open("vtk.vtk");
-//         a<<"# vtk DataFile Version 2.0"<<endl;
-//         a<<"boundary layer mesh"<<endl;
-//         a<<"ASCII"<<endl;
-//         a<<"DATASET UNSTRUCTURED_GRID"<<endl;
-//         a<<"POINTS "<<tetrasfile.NumNodes<<" float"<<endl;
-//         for(int i=0;i<tetrasfile.NumNodes;++i){
-//             a<<tetrasfile.nodes[i].coord.x<<" "<<tetrasfile.nodes[i].coord.y<<" "<<tetrasfile.nodes[i].coord.z<<endl;
-//         }
-//         a<<"CELLS"<<" "<<tetrasfile.numOfCells()<<" "<<tetrasfile.NumPrsm*7+tetrasfile.NumTetras*5<<endl;
-//         for(int i=0;i<tetrasfile.NumPrsm;++i){
-//             a<<6;
-//             for(int j=0;j<6;++j){
-//                 a<<" "<<tetrasfile.pPrisms[i].vertices[j];
-//             }
-//             a<<endl;
-//         }
-//         for(int i=0;i<tetrasfile.NumTetras;++i){
-//             a<<4;
-//             for(int j=0;j<4;++j){
-//                 a<<" "<<tetrasfile.pTetras[i].vertices[j];
-//             }
-//             a<<endl;
-//         }
-//         a<<"CELL_TYPES "<<tetrasfile.numOfCells()<<endl;
-//         for(int i=0;i<tetrasfile.NumPrsm;++i){
-//             a<<13<<endl;
-//         }
-//         for(int i=0;i<tetrasfile.NumTetras;++i){
-//             a<<10<<endl;
-//         }
-//         a.close();
-         if(arguments.gmName!=nullptr){                                 //??????????prolem
+
+         if(arguments.gmName!=nullptr){                                 //problem
              char gm3name[256];
          sprintf(gm3name, "%s", arguments.gmName);
              strcpy(GM3file, gm3name);
@@ -342,15 +280,54 @@ int main1(int argc, char *argv[])
 //         neighbor.open("neighbor.txt");
 //          for(int i=0;i<tetrasfile.NumTetras;++i){
 //              neighbor<<"neighbor size : "<<i<<endl;
-//               for(auto a:tetrasfile.pTetras[i].neighbors)      //运行有不确定结果   ok
+//               for(auto a:tetrasfile.pTetras[i].neighbors)      //运行有不确定结果
 //                neighbor<<a<<" ";
 //               neighbor<<endl;
 //          }
          findiCellFast_temp(tetrasfile);
+#ifdef DEBUG
+             set<int> yanzheng;
+             int tetrasID=-1;
+         for(int i=0;i<tetrasfile.NumTris;i++)
+         {
+             yanzheng.clear();
+             tetrasID=tetrasfile.pTris[i].iCell;
+             for(int j=0;j<3;++j)
+             yanzheng.insert(tetrasfile.pTris[i].vertices[j]);
+             if(tetrasID<tetrasfile.NumPrsm)
+             {
+                 for(int j=0;j<6;++j)
+                 yanzheng.insert(tetrasfile.pPrisms[tetrasID].vertices[j]);
+                 if(yanzheng.size()!=6)
+                   {
+                     cout<<endl<<i<<" "<<"errorororor";
+                     for(int j=0;j<3;++j)
+                    cout<<(tetrasfile.pTris[i].vertices[j])<<"  ";
+                     for(int j=0;j<6;++j)
+                    cout<<(tetrasfile.pPrisms[tetrasID].vertices[j])<<"   ";
+                 }
+             }
+             else if(tetrasID<tetrasfile.NumPrsm+tetrasfile.NumTetras)
+             {
+                     for(int j=0;j<4;++j)
+                     yanzheng.insert(tetrasfile.pTetras[tetrasID-tetrasfile.NumPrsm].vertices[j]);
+                     if(yanzheng.size()!=4)
+                     {             cout<<endl<<i<<" "<<"errorororor";
+                         for(int j=0;j<3;++j)
+                        cout<<(tetrasfile.pTris[i].vertices[j])<<"  ";
+                         for(int j=0;j<4;++j)
+                        cout<<(tetrasfile.pTetras[tetrasID-tetrasfile.NumPrsm].vertices[j])<<"   ";}
+             }
+         }
+#endif
+
+
+
+
 //         for(int i=0;i<tetrasfile.NumTris;++i){
 //             cout<<tetrasfile.pTris[i].iCell<<endl;
 //         }
-        writepl3("test.pl3", tetrasfile);
+   //     writepl3("test.pl3", tetrasfile);
        // exit(1);
     //    readVTKPLSFile(filename,tetrasfile);
         tetrasfile.NumUniqueSurfFacets=tetrasfile.NumTris;
@@ -359,6 +336,27 @@ int main1(int argc, char *argv[])
             refineTimes = expectVolume/tetrasfile.NumTetras/8;
         meshParts = new HYBRID_MESH [nparts];
         partition_test(tetrasfile,meshParts,nparts);
+
+#ifdef DEBUG
+        set<int> sum;
+        for(int k=0;k<nparts;++k){
+            sum.clear();
+        for(int i=0;i<meshParts[k].NumPrsm;++i){
+            for(int j=0;j<6;++j)
+            sum.insert(meshParts[k].pPrisms[i].vertices[j]);
+        }
+        for(int i=0;i<meshParts[k].NumTetras;++i){
+            for(int j=0;j<4;++j)
+            sum.insert(meshParts[k].pTetras[i].vertices[j]);
+        }
+        cout<<"sum  cell===="<<sum.size()<<endl;
+        for(int i=0;i<meshParts[k].NumTris;++i){
+            for(int j=0;j<3;++j)
+            sum.insert(meshParts[k].pTris[i].vertices[j]);
+        }
+        cout<<"sum  all====="<<sum.size()<<endl;
+        }
+#endif
 #ifdef VTK_OUTPUT
         writeVTKFile("cube_partition.vtk", tetrasfile);
         writeTriangleVTKFile("cube_surface.vtk", tetrasfile);
@@ -398,11 +396,11 @@ int main1(int argc, char *argv[])
         if(refinedMesh!=nullptr)
             refinedMesh->clear();
         cout<<"originalMesh->NumNodes"<<originalMesh->NumNodes<<endl;
+
         if(arguments.gmName!=nullptr)
         meshRefining(*originalMesh, *refinedMesh, rank,ref);
         else
         meshRefining_test(*originalMesh, *refinedMesh, rank);
-
 
         unifyBoundaries(*originalMesh, *refinedMesh, MPI_COMM_WORLD);
         if (rank == 0)
@@ -478,7 +476,7 @@ int main1(int argc, char *argv[])
         meshParts = new HYBRID_MESH [nParts];
         cout<<"Second Partition!"<<endl;
 
-        partition(*refinedMesh, meshParts, nParts, size, rank,1);
+        partition_test(*refinedMesh, meshParts, nParts, size, rank,1);
 
         cout<<"Second Partition finished!"<<endl;
         refinedMesh->clear();
@@ -487,16 +485,29 @@ int main1(int argc, char *argv[])
 
     }
     //sort the index of points
-    for(int i=0;i<nParts;i++)
-    {
-        sortPointsID(meshParts[i]);
+//    for(int i=0;i<nParts;i++)
+//    {
+//        sortPointsID(meshParts[i]);
 
-    }
+//    }                         //what's your problem?
+
 
     //
 #ifdef VTK_OUTPUT
     for (int i = 0; i < nParts; ++i)
     {
+
+//  for(int i=0;i<originalMesh->NumPrsm;++i){
+//      for(int j=0;j<6;++j)
+//      cout<<originalMesh->pPrisms[i].vertices[j]<<"   ";
+//      cout<<end
+//  }
+        ofstream b;
+        b.open("node_test.txt"+to_string(rank));
+    for(int i=0;i<newTetrasfile.NumNodes;++i){
+    b<<meshParts->nodes[i].coord.x<<"  "<<meshParts->nodes[i].coord.y<<"   "<<meshParts->nodes[i].coord.z<<endl;
+    }
+    b.close();
 
         sprintf(outputName,"%s%d%s",filename,i * size + rank,"final.vtk");
         cout<<filename<<endl;

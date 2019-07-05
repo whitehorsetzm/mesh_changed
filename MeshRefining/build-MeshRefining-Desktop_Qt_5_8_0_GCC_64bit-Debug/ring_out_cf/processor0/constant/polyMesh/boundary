@@ -16,52 +16,34 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 
-6
+4
 (
     wall1
     {
         type            patch;
-        nFaces          52;
-        startFace       464;
+        nFaces          128;
+        startFace       916;
     }
     wall2
     {
         type            patch;
-        nFaces          28;
-        startFace       516;
+        nFaces          60;
+        startFace       1044;
     }
     wall3
     {
         type            patch;
-        nFaces          32;
-        startFace       544;
+        nFaces          52;
+        startFace       1104;
     }
     procBoundary0to1
     {
         type            processor;
-        nFaces          20;
-        startFace       576;
+        nFaces          40;
+        startFace       1156;
         matchTolerance  0.000100;
         myProcNo        0;
         neighbProcNo    1;
-    }
-    procBoundary0to2
-    {
-        type            processor;
-        nFaces          8;
-        startFace       596;
-        matchTolerance  0.000100;
-        myProcNo        0;
-        neighbProcNo    2;
-    }
-    procBoundary0to3
-    {
-        type            processor;
-        nFaces          20;
-        startFace       604;
-        matchTolerance  0.000100;
-        myProcNo        0;
-        neighbProcNo    3;
     }
 )
 

@@ -1325,7 +1325,6 @@ int findiCellFast_temp(HYBRID_MESH &file)
         sort(v,v+3);
         string temp=IntToString(v[0])+"_"+IntToString(v[1])+"_"+IntToString(v[2]);
         trimap[temp]=i;
-
     }
    double neigbormark=-1;
     map<string,int>::iterator mapIter;
@@ -1367,17 +1366,18 @@ int findiCellFast_temp(HYBRID_MESH &file)
 
                 if(fabs(double(vec[0]*3+vec[1]*5+vec[2]*7)/10-neigbormark)<0.1)
                 {
-                //     cout<<"find face"<<endl;
+    //                 cout<<"find face"<<endl;
                     break;
 
                 }
                 else
                 {
-               //        cout<<"face  "<<double(vec[0]*3+vec[1]*5+vec[2]*7)/10<<"neigormark "<<neigbormark<<endl;
+                       cout<<"face  "<<double(vec[0]*3+vec[1]*5+vec[2]*7)/10<<"neigormark "<<neigbormark<<endl;
                 }
                    }
                    if(k==2)
-                      { cout<<i<<"error at find face"<<endl;
+                      {
+                       cout<<i<<"error at find face"<<endl;
                    }
 
                 string temp=IntToString(vec[0])+"_"+IntToString(vec[1])+"_"+IntToString(vec[2]);
@@ -1389,10 +1389,28 @@ int findiCellFast_temp(HYBRID_MESH &file)
                 }
                  else
                 {
-
                     int triID=mapIter->second;
          //           cout<<triID<<endl;
                     file.pTris[triID].iCell=i;
+#ifdef DEBUG
+                     set<int> a;
+                    a.clear();
+
+                    for(int j=0;j<3;++j)
+                    a.insert(file.pTris[triID].vertices[j]);
+                    if(i<file.NumPrsm){
+                        for(int j=0;j<6;++j)
+                        a.insert(file.pPrisms[i].vertices[j]);
+                        if(a.size()!=6)
+                            cout<<"prism errorororor"<<endl;
+                    }
+                    else{
+                        for(int j=0;j<4;++j)
+                        a.insert(file.pTetras[i-file.NumPrsm].vertices[j]);
+                        if(a.size()!=4)
+                            cout<<"tetras  errorororor"<<endl;
+                    }
+#endif
                 }
             }
         }
@@ -1435,13 +1453,13 @@ int findiCellFast_temp(HYBRID_MESH &file)
 
                 if(fabs(double(vec[0]*3+vec[1]*5+vec[2]*7)/10-neigbormark)<0.1)
                 {
-       //              cout<<"find face"<<endl;
+          //           cout<<"find face"<<endl;
                     break;
 
                 }
                 else
                 {
-               //        cout<<"face  "<<double(vec[0]*3+vec[1]*5+vec[2]*7)/10<<"neigormark "<<neigbormark<<endl;
+       //                cout<<"face  "<<double(vec[0]*3+vec[1]*5+vec[2]*7)/10<<"neigormark "<<neigbormark<<endl;
                 }
                    }
                    if(k==4)
@@ -1459,7 +1477,26 @@ int findiCellFast_temp(HYBRID_MESH &file)
 
                     int triID=mapIter->second;
             //        cout<<triID<<endl;
-                    file.pTris[triID].iCell=i;
+                    file.pTris[triID].iCell=i+file.NumPrsm;
+
+#ifdef DEBUG
+                   set<int> a;
+                  a.clear();
+                       for(int j=0;j<4;++j)
+                       a.insert(file.pTetras[i].vertices[j]);
+                       if(a.size()!=4)
+                       {
+                           for(int j=0;j<3;++j)
+                               cout<<file.pTris[triID].vertices[j]<<"  ";
+                           for(int j=0;j<4;++j)
+                           cout<<file.pTetras[i].vertices[j]<<"  ";
+                                 cout<<endl;
+                       }
+#endif
+             //      }
+
+
+//                   }
                 }
             }
         }
@@ -1796,8 +1833,8 @@ int writeVTKFile(char *filename,HYBRID_MESH&file)
   //  DesFacet *pDF = NULL;
    // bool *visited = NULL;
 
-    int elemSize = file.NumTetras, nodeSize = file.NumNodes;
-
+    int TetSize = file.NumTetras, nodeSize = file.NumNodes;
+    int PriSize = file.NumPrsm;
     FILE *fout = fopen(filename,"w");
     fprintf(fout,"# vtk DataFile Version 2.0\n");
     fprintf(fout,"background mesh\n");
@@ -1815,9 +1852,22 @@ int writeVTKFile(char *filename,HYBRID_MESH&file)
         fprintf(fout,"%lf %lf %lf\n",x, y, z);
 
     }
-    fprintf(fout,"CELLS %d %d \n", elemSize, (elemSize) * 5);
+    fprintf(fout,"CELLS %d %d \n", TetSize+PriSize, (TetSize) * 5+(PriSize)*7);
+    for (i = 0; i < PriSize; i++)
+    {
 
-    for (i = 0; i < elemSize; i++)
+        int index = i + 1;
+        int form0 = file.pPrisms[i].vertices[0];///////////+1
+        int form1 = file.pPrisms[i].vertices[1];
+        int form2 = file.pPrisms[i].vertices[2];
+        int form3 = file.pPrisms[i].vertices[3];
+        int form4 = file.pPrisms[i].vertices[4];
+        int form5 = file.pPrisms[i].vertices[5];
+
+        fprintf(fout,"6 %d %d %d %d %d %d\n",form0,form1,form2,form3,form4,form5);
+
+    }
+    for (i = 0; i < TetSize; i++)
     {
 
         int index = i + 1;
@@ -1826,11 +1876,17 @@ int writeVTKFile(char *filename,HYBRID_MESH&file)
         int form2 = file.pTetras[i].vertices[2];
         int form3 = file.pTetras[i].vertices[3];
 
+
         fprintf(fout,"4 %d %d %d %d\n",form0,form1,form2,form3);
 
     }
-    fprintf(fout,"CELL_TYPES %d \n", elemSize);
-    for (i = 0; i < elemSize; i++)
+
+    fprintf(fout,"CELL_TYPES %d \n", TetSize+PriSize);
+    for (i = 0; i < PriSize; i++)
+    {
+        fprintf(fout,"%d\n", 13);
+    }
+    for (i = 0; i < TetSize; i++)
     {
         fprintf(fout,"%d\n", 10);
     }
@@ -1844,10 +1900,15 @@ int writeVTKFile(char *filename,HYBRID_MESH&file)
         fprintf(fout,"%d\n",file.nodes[i].index);
     }
 
-	fprintf(fout,"\nCELL_DATA %d \n", elemSize);
+    fprintf(fout,"\nCELL_DATA %d \n", TetSize+PriSize);
     fprintf(fout,"SCALARS part int\n");
     fprintf(fout,"LOOKUP_TABLE default\n");
-    for (i = 0; i < elemSize; i++)
+    for (i = 0; i < PriSize; i++)
+    {
+       // double quality =  m_pElems[i].minAngle;
+        fprintf(fout,"%d\n",file.pPrisms[i].partMarker);
+    }
+    for (i = 0; i < TetSize; i++)
     {
        // double quality =  m_pElems[i].minAngle;
 		fprintf(fout,"%d\n",file.pTetras[i].partMarker);
@@ -1856,7 +1917,12 @@ int writeVTKFile(char *filename,HYBRID_MESH&file)
 
 	fprintf(fout,"\nSCALARS cellID int\n");
 	fprintf(fout,"LOOKUP_TABLE default\n");
-	for (i = 0; i < elemSize; i++)
+    for (i = 0; i < PriSize; i++)
+    {
+       // double quality =  m_pElems[i].minAngle;
+        fprintf(fout,"%d\n",file.pPrisms[i].index);
+    }
+    for (i = 0; i < TetSize; i++)
 	{
 	   // double quality =  m_pElems[i].minAngle;
 		fprintf(fout,"%d\n",file.pTetras[i].index);
